@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+hJnlXhklzT7ikT5Sb/Oa7tj2bZTZYav27pdhZup5C8='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="מחשבון פשוט לתכנון השקיית דשא ביתי: ממטירים, חלוקה להפעלות, צנרת ורשימת קניות.">
+<meta name="theme-color" content="#397b56">
+<title>מתכנן ההשקיה לגינה</title>
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: phone-first wizard - three step tabs, square drawing board, step panel, plain-language results, shopping list, glossary */
+:root{
+  --bg:#eef3ee; --surface:#ffffff; --fg:#1b2a21; --muted:#5a6d60; --line:#cfdad1;
+  --grass:#4f9a5c; --grassline:#397b56; --brand:#397b56;
+  --p20:#4a5560; --p25:#a0581c; --p32:#c22a2a; --p40:#6a2fb0; --p50:#0b5f8a; --water:#2a6fb0; --sys:#8a4b14;
+  --ok:#2e7d4f; --warn:#b5651d; --bad:#b33a2b;
+  --z0:#2a6fb0; --z1:#c46a12; --z2:#7b4bb0; --z3:#c03a6b; --z4:#138a8a; --z5:#6b7a12;
+  --gridc:#dfe8e1; --grid5:#bccbbf;
+  --display:"Rubik","Assistant",system-ui,sans-serif;
+  --body:"Assistant","Rubik",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111814; --surface:#19221c; --fg:#e3ece5; --muted:#9bb0a1; --line:#2c3a31;
+  --grass:#5fb06c; --grassline:#86cf92; --brand:#3f9a60;
+  --p20:#c9d1d9; --p25:#f0a35e; --p32:#ff7a7a; --p40:#c49bff; --p50:#5fc0f0; --water:#6aa9e6; --sys:#e0a25e;
+  --ok:#6cc893; --warn:#e3a05c; --bad:#ef7b6b;
+  --z0:#6aa9e6; --z1:#eba45e; --z2:#b28be6; --z3:#ee7fa6; --z4:#5fd0d0; --z5:#c2d45e;
+  --gridc:#1f2a23; --grid5:#2f3e34; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111814; --surface:#19221c; --fg:#e3ece5; --muted:#9bb0a1; --line:#2c3a31;
+  --grass:#5fb06c; --grassline:#86cf92; --brand:#3f9a60;
+  --p20:#c9d1d9; --p25:#f0a35e; --p32:#ff7a7a; --p40:#c49bff; --p50:#5fc0f0; --water:#6aa9e6; --sys:#e0a25e;
+  --ok:#6cc893; --warn:#e3a05c; --bad:#ef7b6b;
+  --z0:#6aa9e6; --z1:#eba45e; --z2:#b28be6; --z3:#ee7fa6; --z4:#5fd0d0; --z5:#c2d45e;
+  --gridc:#1f2a23; --grid5:#2f3e34; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55;direction:rtl}
+.wrap{max-width:720px;margin:0 auto;padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:1.6rem;line-height:1.2}
+h2{font-size:1.15rem}
+h3{font-size:1rem}
+p{margin:0}
+.sub{color:var(--muted)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tab{font:inherit;font-weight:700;padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;line-height:1.2}
+.tab small{display:block;font-weight:400;font-size:.75rem;color:var(--muted)}
+.tab[aria-pressed="true"]{background:var(--grassline);border-color:var(--grassline);color:var(--bg)}
+.tab[aria-pressed="true"] small{color:var(--bg)}
+.tab:focus-visible,.btn:focus-visible,.chip:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.stage{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#board{display:block;width:100%;max-width:min(100%,66vh);aspect-ratio:1/1;margin-inline:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.zoom{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:700 18px var(--display);cursor:pointer}
+.zoom button.fit{font-size:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.hint{color:var(--muted);font-size:.95rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:600;padding:10px 14px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--water);border-color:var(--water);color:var(--surface)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-weight:700;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;min-width:58px}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--surface);border-color:var(--fg)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.88rem;color:var(--muted);flex:1 1 130px;min-width:0}
+.panel>label.f,.selcard>label.f{flex:none}
+select,input[type=number]{font:inherit;font-size:1rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+input[type=number]{direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--water)}
+.selcard{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.tip{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:.92rem;color:var(--muted)}
+.verdict{border-radius:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-inline-start:6px solid var(--ok);display:flex;flex-direction:column;gap:6px}
+.verdict.warn{border-inline-start-color:var(--warn)}
+.verdict.idle{border-inline-start-color:var(--line)}
+.verdict b.big{font-family:var(--display);font-size:1.3rem;line-height:1.25}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat span{font-size:.8rem;color:var(--muted)}
+.stat strong{font-family:var(--display);font-size:1.3rem;font-variant-numeric:tabular-nums}
+.zones{display:flex;flex-direction:column;gap:6px}
+.zone{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.zone .sw{width:14px;height:14px;border-radius:50%;flex:none}
+.zone .zt{flex:1;min-width:0}
+.zone .zq{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.num{direction:ltr;unicode-bidi:isolate}
+ul.shop{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.shop li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+ul.shop li span small{display:block;color:var(--muted);font-size:.82rem}
+ul.shop li b{font-variant-numeric:tabular-nums;white-space:nowrap}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+summary{cursor:pointer;font-weight:700;font-family:var(--display)}
+details[open] summary{margin-bottom:10px}
+dl{margin:0;display:flex;flex-direction:column;gap:8px}
+dt{font-weight:700}
+dd{margin:0;color:var(--muted)}
+.notes{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+/* SVG */
+.grid{stroke:var(--gridc);stroke-width:1px;vector-effect:non-scaling-stroke}
+.grid.g5{stroke:var(--grid5)}
+.lawn{fill:var(--grass);fill-opacity:.30;stroke:var(--grassline);stroke-width:3px;vector-effect:non-scaling-stroke}
+.lawn-open{fill:none;stroke:var(--grassline);stroke-width:2.5px;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.cov{fill-opacity:.07;stroke-opacity:.6;stroke-width:1px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.cov.sel{fill-opacity:.24;stroke-opacity:.95;stroke-width:1.5px}
+.pipe{fill:none;stroke-width:3px;vector-effect:non-scaling-stroke;stroke-linecap:round}
+.head{stroke:var(--surface);stroke-width:2px;vector-effect:non-scaling-stroke}
+.head.sel{stroke:var(--fg);stroke-width:3px}
+.c0{fill:var(--z0);stroke:var(--z0)}.c1{fill:var(--z1);stroke:var(--z1)}.c2{fill:var(--z2);stroke:var(--z2)}
+.c3{fill:var(--z3);stroke:var(--z3)}.c4{fill:var(--z4);stroke:var(--z4)}.c5{fill:var(--z5);stroke:var(--z5)}
+.pipe.c0,.pipe.c1,.pipe.c2,.pipe.c3,.pipe.c4,.pipe.c5{fill:none}
+.head.c0,.head.c1,.head.c2,.head.c3,.head.c4,.head.c5{stroke:var(--surface)}
+.head.sel{stroke:var(--fg)}
+.vtx{fill:var(--surface);stroke:var(--grassline);stroke-width:2.5px;vector-effect:non-scaling-stroke}
+.vtx.first{fill:var(--grassline)}
+.sysb{fill:var(--surface);stroke:var(--sys);stroke-width:2.5px;vector-effect:non-scaling-stroke}
+.sysx{stroke:var(--sys);stroke-width:2.5px;vector-effect:non-scaling-stroke}
+.lbl{fill:var(--fg);font-family:var(--body);font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:3px;vector-effect:non-scaling-stroke}
+.hit{fill:transparent;cursor:pointer}
+.dry{fill:var(--bad)}
+.hitl{fill:none;stroke:transparent;stroke-width:16px;vector-effect:non-scaling-stroke;cursor:pointer;pointer-events:stroke}
+.rad{stroke:var(--grassline);stroke-width:1.5px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.pcase{stroke:var(--surface);fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.plbl{font-family:var(--body);font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:3px;vector-effect:non-scaling-stroke}
+.zlbl{font-family:var(--display);font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:4px;vector-effect:non-scaling-stroke;opacity:.95}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.legend:empty{display:none}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lgp{display:inline-block;width:26px;border-radius:3px}
+.lgz{display:inline-block;width:12px;height:12px;border-radius:50%}
+.lgl{display:inline-block;width:26px;height:12px;background:color-mix(in srgb,var(--grass) 30%,transparent);border:2px solid var(--grassline);border-radius:2px}
+.lgc{display:inline-block;width:16px;height:16px;border-radius:50%;border:1px dashed var(--z0);background:color-mix(in srgb,var(--z0) 10%,transparent)}
+.lgs{display:inline-block;width:12px;height:12px;border:2px solid var(--sys);background:linear-gradient(45deg,transparent 45%,var(--sys) 45% 55%,transparent 55%),linear-gradient(-45deg,transparent 45%,var(--sys) 45% 55%,transparent 55%)}
+.calc code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;direction:ltr;unicode-bidi:isolate;display:inline-block;max-width:100%;overflow-x:auto;color:var(--fg)}
+.lbl.sel{fill:var(--water)}
+.vtx.sel{fill:var(--water);stroke:var(--water)}
+.addh{fill:var(--surface);stroke:var(--water);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.addt{fill:var(--water);font-family:var(--display);font-weight:700;pointer-events:none}
+.pv{fill:var(--water);fill-opacity:.8}
+.chip.shape{display:inline-flex;align-items:center;gap:6px}
+.chip.shape svg{color:var(--grassline)}
+.chip.shape[aria-pressed="true"] svg{color:var(--surface)}
+/* brand */
+.brandbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{background:#ffffff;border-radius:12px;padding:6px 10px;display:inline-flex;border:1px solid var(--line)}
+.logo img{display:block;width:120px;height:auto}
+.btn.help{padding:8px 12px;font-size:.9rem}
+.btn.primary{background:var(--brand);border-color:var(--brand)}
+.credit{display:flex;align-items:center;gap:12px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:.88rem}
+.credit img{background:#ffffff;border-radius:8px;padding:4px;width:70px;height:auto;flex:none}
+/* first-visit guide */
+.guide{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,#000 45%,transparent);display:flex;align-items:center;justify-content:center;
+  padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.gcard{background:var(--surface);color:var(--fg);border-radius:16px;padding:20px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:12px}
+.gart svg{width:100%;height:auto;display:block;background:var(--bg);border-radius:10px}
+.gg path{stroke:var(--grid5);stroke-width:.6;fill:none}
+.glawn{fill:var(--grass);fill-opacity:.3;stroke:var(--grassline);stroke-width:1.5}
+.glbl{fill:var(--fg);font:700 8px var(--body)}
+.gsys{fill:var(--surface);stroke:var(--sys);stroke-width:1.5}.gsysx{stroke:var(--sys);stroke-width:1.5}
+.gcov{fill:var(--water);fill-opacity:.18;stroke:var(--water);stroke-width:.8}.ghead{fill:var(--water)}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--brand)}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="brandbar">
+    <div class="logo"><img src="data:image/png;base64,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" width="186" height="95" alt="ת.מ.י - תכנון מערכות השקיה"></div>
+    <button class="btn help" id="help">איך זה עובד?</button>
+  </header>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <h1>מתכנן ההשקיה לגינה</h1>
+    <p class="sub">שלושה שלבים: מסמנים את הדשא, מסמנים את ראש המערכת, והמחשבון מציב ממטירים, מחלק להפעלות ונותן רשימת קניות.</p>
+  </div>
+
+  <div class="tabs" role="group" aria-label="שלבים">
+    <button class="tab" data-mode="lawn">1. הדשא<small>צורה ומידות</small></button>
+    <button class="tab" data-mode="sys">2. ראש המערכת<small>מיקום וגודל</small></button>
+    <button class="tab" data-mode="heads">3. ממטירים<small>פריסה ותיקון</small></button>
+  </div>
+
+  <div class="stage">
+    <svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="שרטוט הגינה"></svg>
+    <div class="zoom">
+      <button id="zin" aria-label="הגדלה">+</button>
+      <button id="zout" aria-label="הקטנה">−</button>
+      <button id="zfit" class="fit" aria-label="התאמה לשרטוט">התאם</button>
+    </div>
+  </div>
+
+  <div class="legend" id="legend" aria-label="מקרא"></div>
+
+  <div class="panel" id="panel"></div>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <h2>מה יוצא</h2>
+    <div id="results" style="display:flex;flex-direction:column;gap:12px"></div>
+  </section>
+
+  <details>
+    <summary>הגדרות מתקדמות</summary>
+    <div class="row">
+      <label class="f" for="pipe">צינור (פוליאתילן)
+        <select id="pipe">
+          <option value="auto" selected>לפי ההמלצה</option>
+          <option value="20">20 מ"מ</option>
+          <option value="25">25 מ"מ</option>
+          <option value="32">32 מ"מ</option>
+          <option value="40">40 מ"מ</option>
+          <option value="50">50 מ"מ</option>
+        </select>
+      </label>
+      <label class="f" for="pin">לחץ מים בברז (בר)
+        <input id="pin" type="number" step="0.1" min="1" value="4">
+      </label>
+      <label class="f" for="elev">הדשא גבוה מראש המערכת ב- (מ')
+        <input id="elev" type="number" step="0.5" value="0">
+      </label>
+    </div>
+    <p class="hint" style="margin-top:8px">אם יש לך כבר צינור בגודל מסוים, בחר אותו כאן והמחשבון יחלק להפעלות לפיו. אם אינך יודע את הלחץ, השאר 4 בר. אם הדשא נמוך מראש המערכת, כתוב מספר שלילי.</p>
+  </details>
+
+  <section class="panel" style="gap:10px">
+    <div class="row" style="justify-content:space-between">
+      <h2>רשימת קניות</h2>
+      <button class="btn" id="copy">העתק רשימה</button>
+    </div>
+    <ul class="shop" id="shop"></ul>
+  </section>
+
+  <details>
+    <summary>מילון קטן</summary>
+    <dl>
+      <div><dt>ראש מערכת</dt><dd>המקום שבו המים נכנסים להשקיה: ברז, מסנן וברזים חשמליים. משם יוצאים הצינורות לממטירים.</dd></div>
+      <div><dt>ספיקה</dt><dd>כמה מים עוברים, במטר מעוקב לשעה (מ"ק/ש'). כל ממטיר צורך ספיקה מסוימת, והצינור והכניסה יכולים להעביר רק עד גבול מסוים.</dd></div>
+      <div><dt>הפעלה</dt><dd>קבוצת ממטירים שעובדים יחד. אם אין מספיק מים לכולם בבת אחת, מחלקים לכמה הפעלות שעובדות אחת אחרי השנייה. לכל הפעלה יש ברז חשמלי משלה.</dd></div>
+      <div><dt>שדרת דג</dt><dd>צורת חיבור הצינורות: קו ראשי אחד מראש המערכת, ומכל ממטיר יוצאת שלוחה קצרה אליו.</dd></div>
+      <div><dt>זווית הממטיר</dt><dd>כמה מהמעגל הממטיר משקה: 90° בפינה, 180° לאורך צד, 360° באמצע הדשא.</dd></div>
+      <div><dt>MP1000 / MP2000 / MP3000</dt><dd>ממטירים מסתובבים שמשקים לאט ובאחידות. ההבדל ביניהם הוא הטווח: עד 4.5 מ', עד 6.4 מ' ועד 9.1 מ'.</dd></div>
+    </dl>
+  </details>
+
+  <details>
+    <summary>איך המחשבון מחשב</summary>
+    <dl class="calc">
+      <div><dt>1. דגם</dt><dd>הדגם הגדול ביותר שהטווח המינימלי שלו נכנס במקום הצר ביותר בדשא (נמדד מאמצע כל צלע ישר פנימה).</dd></div>
+      <div><dt>2. טווח וספיקה ב-2.8 בר</dt><dd>מטבלת הקטלוג (עמ' 54). טווח: MP1000 ‏4.1 מ', MP2000 ‏6.1 מ' ב-90° ו-5.8 מ' בשאר, MP3000 ‏9.1 מ'. ספיקה בזווית ביניים: קו ישר בין שתי שורות בטבלה.<br>
+        <code>q = q₁ + (q₂ − q₁) · (α − α₁) / (α₂ − α₁)</code></dd></div>
+      <div><dt>3. פריסה ראש לראש</dt><dd>פינות: זווית הפינה, רק בתחומי הפיות 90°-210°, 210°-270° או 360° (אחרת אזהרה). צלע: קטע אחד אם שני ממטירי הפינה מגיעים זה לזה, אחרת <code>n = ⌈ L / R₁₈₀ ⌉</code> קטעים עם ממטירי 180°. בפנים: רשת ריבועית באותו מרווח עם 360°, רק היכן שהשוליים לא נותנים כיסוי כפול. בסוף נבדק כל הדשא ברשת נקודות, ונוספים ממטירי 360° עד שאין נקודות יבשות ואין אזורים פנימיים שמגיע אליהם ממטיר אחד בלבד.</dd></div>
+      <div><dt>4. ספיקה מרבית</dt><dd><code>Qmax = 1.5 · (π · D² / 4) · 3600</code> (מ"ק/ש'), מהירות 1.5 מ'/ש'.<br>
+        הכנה בקיר (גבול עליון בלבד): ½" 1.0 · ¾" 1.8 · 1" 3.0 · 1¼" 5.2<br>
+        צינור מצר (קוטר פנימי): 20/10 (16.0) 1.08 · 25/6 (22.0) 2.05 · 32/6 (28.2) 3.37 · 40/6 (36.0) 5.49 · 50/6 (45.2) 8.66</dd></div>
+      <div><dt>5. ספיקה זמינה מהברז</dt><dd>מבחן דלי: <code>Q = 0.75 · (10 / t) · 3.6</code> (מ"ק/ש', t בשניות). 75% כי המבחן נעשה כמעט בלי לחץ. או ספיקה שהוקלדה בלחץ עבודה.</dd></div>
+      <div><dt>6. הפעלות</dt><dd><code>Qlim = min(הכנה בקיר, ספיקה זמינה, צינור שנבחר)</code>, <code>k = ⌈ Σq / Qlim ⌉</code>. הממטירים ממוינים לאורך הצד הארוך ומחולקים ל-k רצועות בספיקה שווה. רצועה שחורגת מוסיפה הפעלה.</dd></div>
+      <div><dt>7. צנרת וקוטר</dt><dd>שדרת דג: קו ראשי ישר מראש המערכת דרך ההפעלה, נעצר 0.4 מ' לפני הגבול, ושלוחה לכל ממטיר. אם צינור יוצא מהדשא, נבחר מיקום אחר. כל קטע מקבל את הקוטר הקטן ביותר ש-Qmax שלו ≥ הספיקה שעוברת בו.</dd></div>
+      <div><dt>8. לחץ נדרש בראש המערכת (לכל הפעלה)</dt><dd>Hazen-Williams, C=140: <code>J = 10.67 · Q<sup>1.852</sup> / ( C<sup>1.852</sup> · D<sup>4.87</sup> )</code><br>
+        הפסד בצינור לכל ממטיר: <code>h = Σ J · L · 1.15 / 10.2</code> (בר). נלקח הממטיר עם ההפסד הגדול ביותר.<br>
+        <code>P = 2.8 + h + Δz / 10.2 + ברז PGV 1" (לפי טבלה וספיקה) + 0.2 מסנן</code></dd></div>
+    </dl>
+  </details>
+
+  <section class="notes">
+    <p>ספיקות הממטירים לפי טבלת הביצועים בקטלוג Hunter בעברית (עמ' 54), בלחץ 2.8 בר.</p>
+    <p>קטרי צינור לפי דף הנתונים של מצר. הפסד ברז חשמלי לפי טבלת Hunter ל-PGV של 1 צול. הספיקה המרבית של כניסה וצינור חושבה למהירות מים של 1.5 מטר לשנייה.</p>
+    <p>זו הערכה לגינה ביתית. בגינה גדולה או מסובכת כדאי להתייעץ עם מתכנן השקיה.</p>
+  </section>
+
+  <footer class="credit">
+    <img src="data:image/png;base64,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" width="93" height="48" alt="">
+    <p>פותח על ידי <b>ת.מ.י - תכנון מערכות השקיה</b>.<br>כל הזכויות שמורות.</p>
+  </footer>
+</div>
+
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-labelledby="gtitle" hidden>
+  <div class="gcard">
+    <div class="gart"></div>
+    <h2 id="gtitle"></h2>
+    <p></p>
+    <div class="dots"></div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn" id="gskip">דלג</button>
+      <button class="btn primary" id="gnext">הבא</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- catalog data: Hunter MP Rotator at 2.8 bar ---------- */
+const MODELS=[
+  {id:'MP1000',rmin:2.5,rmax:4.1,ra:{90:4.1,180:4.1,210:4.1,270:4.1,360:4.1},q:{90:0.05,180:0.10,210:0.11,270:0.14,360:0.19}},
+  {id:'MP2000',rmin:4.0,rmax:5.8,ra:{90:6.1,180:5.8,210:5.8,270:5.8,360:5.8},q:{90:0.10,180:0.18,210:0.20,270:0.25,360:0.34}},
+  {id:'MP3000',rmin:6.7,rmax:9.1,ra:{90:9.1,180:9.1,210:9.1,270:9.1,360:9.1},q:{90:0.20,180:0.42,210:0.49,270:0.63,360:0.84}}];
+/* throw radius at 2.8 bar for an arc: the catalog row, or the smaller of the two rows around it */
+const rAt=(m,arc)=>{const ks=Object.keys(m.ra).map(Number).sort((a,b)=>a-b);if(arc<=ks[0])return m.ra[ks[0]];
+  for(let i=1;i<ks.length;i++)if(arc<=ks[i])return Math.min(m.ra[ks[i-1]],m.ra[ks[i]]);return m.ra[ks[ks.length-1]];};
+const P_HEAD=2.8;
+/* max flow at 1.5 m/s */
+const INLETS=[
+  {id:'1/2',label:'½ צול',cap:1.0,od:'כ-2 ס"מ'},
+  {id:'3/4',label:'¾ צול',cap:1.8,od:'כ-2.6 ס"מ'},
+  {id:'1',label:'1 צול',cap:3.0,od:'כ-3.3 ס"מ'},
+  {id:'1.25',label:'1¼ צול',cap:5.2,od:'כ-4.2 ס"מ'}];
+/* Metzer PE inner diameters: 20/10 (no PN6 in 20), 25/6, 32/6, 40/6, 50/6. capacity = 1.5 m/s */
+const PIPES=[{mm:20,cls:10,d:16.0},{mm:25,cls:6,d:22.0},{mm:32,cls:6,d:28.2},{mm:40,cls:6,d:36.0},{mm:50,cls:6,d:45.2}]
+  .map(p=>({...p,cap:Math.floor(1.5*Math.PI*(p.d/1000)**2/4*3600*100)/100}));
+/* Hunter PGV 1" valve loss (bar) by flow (m3/h); filter estimate 0.2 bar */
+const PGV=[[0.3,0.08],[1.0,0.11],[2.5,0.13],[3.5,0.16],[4.5,0.23],[5.5,0.43],[6.5,0.62],[8.0,1.10],[9.0,1.48]],P_FILTER=0.2;
+function pgvLoss(q){if(q<=PGV[0][0])return PGV[0][1];for(let i=1;i<PGV.length;i++)if(q<=PGV[i][0]){const[a,la]=PGV[i-1],[b,lb]=PGV[i];return la+(lb-la)*(q-a)/(b-a);}return PGV[PGV.length-1][1];}
+
+/* ---------- state: opens with an example 6x6 lawn ---------- */
+const S={shape:null,dims:{rect:{L:null,W:null},L:{L:null,W:null,a:null,b:null},U:{L:null,W:null,c:null,d:null},circle:{R:null}},selV:-1,selE:-1,preview:null,bulge:{},poly:[],closed:false,sys:null,inlet:'3/4',inletUnknown:false,
+  heads:[],modelSel:'auto',pipe:'auto',pin:4,elev:0,avail:{mode:'none',sec:30,q:1.2},mode:'lawn',sel:-1,view:{ox:-2,oy:-2,W:20}};
+let R={zones:null,zoneOf:[],Q:[],total:0,pipe:null,limit:0,limitBy:''};
+
+/* ---------- geometry ---------- */
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const snap=(p,s=0.5)=>({x:Math.round(p.x/s)*s,y:Math.round(p.y/s)*s});
+/* the outline with arcs: each side may bow out or in by a few metres (S.bulge[i], + = outward) */
+let DC=null;const inv=()=>{DC=null;};
+function outward(i){const P=S.poly,n=P.length,a=P[i],b=P[(i+1)%n],L=dist(a,b)||1;let nx=-(b.y-a.y)/L,ny=(b.x-a.x)/L;
+  if(inside({x:(a.x+b.x)/2+nx*0.05,y:(a.y+b.y)/2+ny*0.05},P)){nx=-nx;ny=-ny;}return{nx,ny};}
+function edgePath(i){const P=S.poly,n=P.length,a=P[i],b=P[(i+1)%n],h=S.closed?(S.bulge[i]||0):0;
+  if(!h)return[a,b];const{nx,ny}=outward(i),pts=[];
+  for(let s=0;s<=16;s++){const t=s/16,k=h*4*t*(1-t);pts.push({x:a.x+(b.x-a.x)*t+nx*k,y:a.y+(b.y-a.y)*t+ny*k});}return pts;}
+const pathLen=pts=>{let L=0;for(let j=1;j<pts.length;j++)L+=dist(pts[j-1],pts[j]);return L;};
+function dense(){if(DC)return DC;const P=S.poly,n=P.length,pts=[],corner=[];
+  if(!S.closed||n<3){DC={pts:P.slice(),corner:P.map(()=>true)};return DC;}
+  for(let i=0;i<n;i++){const e=edgePath(i);e.slice(0,-1).forEach((p,j)=>{pts.push(p);corner.push(j===0&&S.shape!=='circle');});}
+  DC={pts,corner};return DC;}
+function inside(p,poly=dense().pts){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];
+  if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)c=!c;}return c;}
+function segDist(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;let t=l?((p.x-a.x)*dx+(p.y-a.y)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);}
+function edgeDist(p){let m=1e9;const P=dense().pts;for(let i=0;i<P.length;i++)m=Math.min(m,segDist(p,P[i],P[(i+1)%P.length]));return m;}
+function area(){const P=dense().pts;let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];s+=a.x*b.y-b.x*a.y;}return Math.abs(s)/2;}
+const rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI;
+/* ready-made shapes, built from a few measurements */
+const DIMS={rect:[['L','אורך'],['W','רוחב']],circle:[['R','רדיוס (מהמרכז לשפה)']],
+  L:[['L','אורך כולל'],['W','רוחב כולל'],['a','רוחב הרצועה העליונה'],['b','רוחב הרצועה הצדדית']],
+  U:[['L','אורך כולל'],['W','רוחב כולל'],['c','רוחב כל זרוע'],['d','רוחב החלק המחבר']]};
+function shapePoly(){const k=S.shape,D=S.dims[k];
+  if(k==='circle'){const R=D.R,pts=[];for(let i=0;i<36;i++){const a=i/36*2*Math.PI;pts.push({x:+(R+R*Math.cos(a)).toFixed(3),y:+(R+R*Math.sin(a)).toFixed(3)});}return pts;}
+  if(k==='L'){const{L,W}=D,a=Math.min(D.a,W-0.5),b=Math.min(D.b,L-0.5);return[{x:0,y:0},{x:L,y:0},{x:L,y:a},{x:b,y:a},{x:b,y:W},{x:0,y:W}];}
+  if(k==='U'){const{L,W}=D,c=Math.min(D.c,L/2-0.5),d=Math.min(D.d,W-0.5);return[{x:0,y:0},{x:L,y:0},{x:L,y:W},{x:L-c,y:W},{x:L-c,y:d},{x:c,y:d},{x:c,y:W},{x:0,y:W}];}
+  const{L,W}=S.dims.rect;return[{x:0,y:0},{x:L,y:0},{x:L,y:W},{x:0,y:W}];}
+/* change one side's length: slide the two following corners along that side */
+function setEdge(i,newL){const P=S.poly,n=P.length,a=P[i],b=P[(i+1)%n],L=dist(a,b);if(L<0.01||!(newL>0))return;
+  const dx=(b.x-a.x)/L*(newL-L),dy=(b.y-a.y)/L*(newL-L);
+  [(i+1)%n,(i+2)%n].forEach(j=>{if(j!==i){P[j]={x:+(P[j].x+dx).toFixed(2),y:+(P[j].y+dy).toFixed(2)};}});
+  S.shape='free';autoPlace();fit();}
+/* while drawing: snap to the half-metre grid and straighten nearly level or upright lines */
+function smartPt(p){const P=S.poly,q=snap(p);if(!P.length)return q;
+  if(P.length>=3&&dist(p,P[0])<S.view.W/22)return{...P[0],close:true};
+  const l=P[P.length-1],dx=Math.abs(q.x-l.x),dy=Math.abs(q.y-l.y),t=Math.tan(rad(12));
+  if(dy<=dx*t)q.y=l.y;else if(dx<=dy*t)q.x=l.x;return q;}
+
+/* ---------- models ---------- */
+function autoModel(){if(!S.poly.length)return MODELS[1];
+  const d=narrowest();let m=MODELS[0];for(const x of MODELS)if(x.rmin<=d+0.01)m=x;return m;}
+/* narrowest width of the lawn: from the middle of each side, measure straight inward to the opposite edge */
+function narrowest(){const P=dense().pts,n=P.length;let w=1e9;
+  for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n],L=dist(a,b);if(L<0.3)continue;
+    let nx=-(b.y-a.y)/L,ny=(b.x-a.x)/L;const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(!inside({x:mx+nx*0.05,y:my+ny*0.05})){nx=-nx;ny=-ny;}
+    let t=0.05;while(t<200&&inside({x:mx+nx*t,y:my+ny*t}))t+=0.05;w=Math.min(w,t);}
+  return w;}
+function model(){return S.modelSel==='auto'?autoModel():(MODELS.find(x=>x.id===S.modelSel)||autoModel());}
+function flow(m,arc){const pts=[[0,0],...Object.keys(m.q).map(Number).sort((a,b)=>a-b).map(k=>[k,m.q[k]])];
+  for(let i=1;i<pts.length;i++)if(arc<=pts[i][0]){const[a0,q0]=pts[i-1],[a1,q1]=pts[i];return q0+(q1-q0)*(arc-a0)/(a1-a0);}return m.q[360];}
+const clampR=(r,m,arc=180)=>Math.min(rAt(m,arc),Math.max(m.rmin,r));
+const inlet=()=>INLETS.find(i=>i.id===S.inlet);
+
+/* ---------- orientation: the start angle whose arc stays inside the lawn ---------- */
+function orient(h){if(h.arc>=360){h.start=0;return;}
+  const d=0.25,score=s=>{let n=0;for(let a=s+3;a<=s+h.arc-3;a+=8)if(inside({x:h.x+d*Math.cos(rad(a)),y:h.y+d*Math.sin(rad(a))}))n++;return n;};
+  let best=h.start??0,bs=score(best);
+  for(let s=0;s<360;s+=5){const v=score(s);if(v>bs){bs=v;best=s;}}
+  h.start=best;}
+
+/* ---------- auto layout: corners, sides head-to-head, inner full circles ---------- */
+function autoPlace(){inv();
+  const P=S.poly,n=P.length;if(!S.closed||n<3){S.heads=[];return;}
+  const m=model(),Sp=m.rmax,H=[],D=dense(),pts=D.pts,N=pts.length,C=[];
+  for(let j=0;j<N;j++)if(D.corner[j])C.push(j);
+  const pointAt=(r,want)=>{let acc=0;for(let q=1;q<r.length;q++){const d=dist(r[q-1],r[q]);if(acc+d>=want-1e-9){const t=d?(want-acc)/d:0;return{x:r[q-1].x+(r[q].x-r[q-1].x)*t,y:r[q-1].y+(r[q].y-r[q-1].y)*t};}acc+=d;}return r[r.length-1];};
+  if(!C.length){/* round lawn: sprinklers evenly around the edge */
+    const r=pts.concat([pts[0]]),L=pathLen(r),k=Math.max(3,Math.ceil(L/Sp-1e-6)),rr=clampR(L/k,m,180);
+    for(let j=0;j<k;j++)H.push({...pointAt(r,L*j/k),arc:180,r:rr});}
+  else{const sp=[],nc=C.length;
+    /* corner arcs first: the nozzles come in 90-210, 210-270 and 360, so a sharper or wider corner gets the nearest arc and a warning */
+    const CA=C.map(j=>{const v=pts[j],pv=pts[(j-1+N)%N],nx=pts[(j+1)%N];
+      const a1=Math.atan2(nx.y-v.y,nx.x-v.x),a2=Math.atan2(pv.y-v.y,pv.x-v.x);
+      const diff=(a2-a1+4*Math.PI)%(2*Math.PI),mid=a1+diff/2;
+      const ang=inside({x:v.x+0.05*Math.cos(mid),y:v.y+0.05*Math.sin(mid)})?deg(diff):360-deg(diff);
+      let arc=Math.abs(ang-180)<12?180:Math.round(ang/5)*5,warn='';
+      if(arc<90){warn=`פינה חדה (${Math.round(ang)}°): פיה של 90° לא נכנסת לה בדיוק`;arc=90;}
+      if(arc>270){warn=`פינה רחבה (${Math.round(ang)}°): אין פיה כזו, הוצבה 270°`;arc=270;}
+      return{arc,warn};});
+    /* each side: one span if both corner sprinklers reach each other, otherwise equal spans no longer than a 180° throw */
+    C.forEach((j0,ci)=>{const j1=C[(ci+1)%nc],r=[];let j=j0;do{r.push(pts[j]);j=(j+1)%N;}while(j!==j1);r.push(pts[j1]);
+      const L=pathLen(r),reach=Math.min(rAt(m,CA[ci].arc),rAt(m,CA[(ci+1)%nc].arc)),
+        k=L<=reach+1e-6?1:Math.max(2,Math.ceil(L/rAt(m,180)-1e-6));sp[ci]=L/k;
+      for(let q=1;q<k;q++)H.push({...pointAt(r,L*q/k),arc:180,r:clampR(sp[ci],m,180)});});
+    C.forEach((j,ci)=>{const v=pts[j];H.push({x:v.x,y:v.y,arc:CA[ci].arc,warn:CA[ci].warn,r:clampR(Math.max(sp[ci],sp[(ci-1+nc)%nc]),m,CA[ci].arc)});});}
+  /* inner rows: a square grid that continues the head-to-head spacing of the edges */
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const nx=Math.max(1,Math.ceil((x1-x0)/Sp-1e-6)),ny=Math.max(1,Math.ceil((y1-y0)/Sp-1e-6)),gx=(x1-x0)/nx,gy=(y1-y0)/ny,gm=Math.min(gx,gy);
+  H.forEach(orient);
+  const cv0=coverage(H),lack=cv0.dry.concat(cv0.single);
+  for(let i=1;i<nx;i++)for(let j=1;j<ny;j++){const p={x:x0+i*gx,y:y0+j*gy};
+    if(inside(p)&&edgeDist(p)>0.3*gm&&H.every(h=>dist(h,p)>0.6*gm)&&lack.some(q=>dist(q,p)<=0.5*gm))H.push({...p,arc:360,start:0,r:clampR(Math.max(gx,gy),m,360)});}
+  /* head to head: every inner spot should be reached by 2+ sprinklers. First close dry spots,
+     then single-covered spots away from the edge, each time with a full circle in the middle of the patch */
+  for(let it=0;it<30;it++){const cv=coverage(H),dry=cv.dry.length?cv.dry:cv.single.filter(p=>edgeDist(p)>0.3*Sp);
+    if(!dry.length||(!cv.dry.length&&dry.length<4))break;
+    let far=dry[0],fd=-1;dry.forEach(p=>{const d=Math.min(...H.map(h=>dist(h,p)));if(d>fd){fd=d;far=p;}});
+    const near=dry.filter(p=>dist(p,far)<=Sp*0.7),c={x:near.reduce((a,p)=>a+p.x,0)/near.length,y:near.reduce((a,p)=>a+p.y,0)/near.length};
+    const at=inside(c)?c:far;H.push({x:+at.x.toFixed(2),y:+at.y.toFixed(2),arc:360,start:0,r:clampR(Sp,m,360)});}
+  S.heads=H;S.sel=-1;}
+/* does sprinkler h wet point p (inside its radius and its arc)? */
+function covers(h,p){const d=dist(h,p);if(d>h.r+1e-6)return false;if(h.arc>=360||d<1e-6)return true;
+  const a=(deg(Math.atan2(p.y-h.y,p.x-h.x))-(h.start||0)+720)%360;return a<=h.arc+1;}
+/* check the whole lawn on a fine grid: how much gets water, and how much gets it from 2+ sprinklers (head to head) */
+function coverage(H=S.heads){const P=dense().pts;if(P.length<3||!H.length)return{one:0,two:0,dry:[],single:[],n:0};
+  const xs=P.map(p=>p.x),ys=P.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const st=Math.max(0.4,Math.max(x1-x0,y1-y0)/60);let n=0,c1=0,c2=0;const dry=[],single=[];
+  for(let x=x0+st/2;x<x1;x+=st)for(let y=y0+st/2;y<y1;y+=st){const p={x,y};if(!inside(p))continue;n++;
+    let k=0;for(const h of H){if(covers(h,p)&&++k>=2)break;}if(k>=1)c1++;else dry.push(p);if(k>=2)c2++;else if(k===1)single.push(p);}
+  return{one:n?c1/n:0,two:n?c2/n:0,dry,single,n};}
+
+/* ---------- hydraulics and zoning ---------- */
+function J(q,dmm,C=140){const Q=q/3600,D=dmm/1000;return 10.67*Math.pow(Q,1.852)/(Math.pow(C,1.852)*Math.pow(D,4.87));}
+function partition(cap){
+  /* split the lawn into strips across its long side, so each zone is a compact block */
+  const xs=S.heads.map(h=>h.x),ys=S.heads.map(h=>h.y),horiz=(Math.max(...xs)-Math.min(...xs))>=(Math.max(...ys)-Math.min(...ys));
+  const ord=S.heads.map((h,i)=>({i,a:horiz?h.x+h.y*1e-3:h.y+h.x*1e-3})).sort((a,b)=>a.a-b.a);
+  let groups;for(let k=Math.max(1,Math.ceil(R.total/cap-1e-9));k<=ord.length;k++){const t=R.total/k;groups=Array.from({length:k},()=>[]);let cum=0;
+    for(const o of ord){const q=R.Q[o.i];groups[Math.min(k-1,Math.floor((cum+q/2)/t))].push(o.i);cum+=q;}
+    groups=groups.filter(g=>g.length);
+    if(groups.every(g=>g.reduce((s,i)=>s+R.Q[i],0)<=cap+1e-9))break;}
+  return groups;}
+function compute(){
+  const m=model();R={cov:null,zones:null,zoneOf:[],Q:[],total:0,fixed:null,limit:0,limitBy:'',pipes:[]};
+  R.Q=S.heads.map(h=>flow(m,h.arc));R.total=R.Q.reduce((a,b)=>a+b,0);R.cov=S.closed?coverage():null;
+  if(!S.sys||!S.heads.length)return;
+  const inCap=inlet().cap,av=availFlow();R.fixed=S.pipe==='auto'?null:PIPES.find(p=>p.mm===+S.pipe);
+  const lims=[['inlet',inCap]];if(av!=null)lims.push(['avail',av]);if(R.fixed)lims.push(['pipe',R.fixed.cap]);
+  lims.sort((a,b)=>a[1]-b[1]);R.limit=lims[0][1];R.limitBy=lims[0][0];
+  const groups=partition(R.limit);
+  R.zones=groups.map((g,zi)=>{g.forEach(i=>R.zoneOf[i]=zi);
+    const q=g.reduce((s,i)=>s+R.Q[i],0),fb=fishbone(g),valve=pgvLoss(q);
+    /* pressure needed at the system head for this zone: sprinkler 2.8 + worst pipe path + height + valve + filter */
+    return{heads:g,q,...fb,valve,need:P_HEAD+fb.loss+S.elev/10.2+valve+P_FILTER};});
+  const by={};R.zones.forEach(z=>z.segs.forEach(s=>by[s.mm]=(by[s.mm]||0)+s.L));
+  R.pipes=Object.keys(by).map(Number).filter(mm=>by[mm]>0.05).sort((a,b)=>b-a).map(mm=>({mm,len:by[mm]}));
+}
+/* each pipe segment gets the smallest size (at least 20) whose flow limit covers the water passing through it */
+const pipeFor=q=>R.fixed||PIPES.find(p=>p.cap>=q-1e-9)||PIPES[PIPES.length-1];
+function sizeSeg(s){s.L=dist(s.a,s.b);const p=pipeFor(s.q);s.mm=p.mm;s.d=p.d;return s;}
+/* metres of pipe that run outside the lawn (a little slack along the edge is fine) */
+function outsideLen(segs){let o=0;for(const s of segs){if(dist(s.a,S.sys)<0.01)continue;const L=dist(s.a,s.b),n=Math.max(1,Math.ceil(L/0.5));
+  for(let k=0;k<n;k++){const t=(k+0.5)/n,p={x:s.a.x+(s.b.x-s.a.x)*t,y:s.a.y+(s.b.y-s.a.y)*t};if(!inside(p)&&edgeDist(p)>0.2)o+=L/n;}}return o;}
+/* fishbone: one main line (spine) from the system head through the zone, and a straight branch
+   at 90 degrees from the spine to each sprinkler. Tries spine positions and keeps the one that
+   stays inside the lawn with the least pipe. */
+function fishCand(g,horiz,bc){
+  const sys=S.sys,hs=g.map(i=>S.heads[i]),qs=g.map(i=>R.Q[i]),Qz=qs.reduce((a,b)=>a+b,0);
+  const A=p=>horiz?p.x:p.y,B=p=>horiz?p.y:p.x,P=(a,b)=>horiz?{x:a,y:b}:{x:b,y:a};
+  const As=hs.map(A),lo=Math.min(...As)+0.4,hi=Math.max(...As)-0.4,cl=a=>hi>lo?Math.min(hi,Math.max(lo,a)):(lo+hi)/2;
+  const ea=A(sys),E=P(ea,bc),segs=[],paths=[];let base=[];
+  if(Math.abs(B(sys)-bc)>0.01){segs.push({a:sys,b:E,q:Qz,main:true});base=[0];}
+  for(const side of[1,-1]){
+    const idx=hs.map((h,k)=>k).filter(k=>side===1?A(hs[k])>=ea:A(hs[k])<ea).sort((a,b)=>Math.abs(A(hs[a])-ea)-Math.abs(A(hs[b])-ea));
+    let prev=ea,chain=base.slice();
+    idx.forEach((k,t)=>{const h=hs[k],a=cl(A(h));
+      if(Math.abs(a-prev)>0.01){segs.push({a:P(prev,bc),b:P(a,bc),q:idx.slice(t).reduce((s,j)=>s+qs[j],0),main:true});chain=chain.concat(segs.length-1);}
+      prev=a;const p=chain.slice();
+      if(dist(P(a,bc),h)>0.01){segs.push({a:P(a,bc),b:h,q:qs[k]});p.push(segs.length-1);}
+      paths.push(p);});}
+  segs.forEach(sizeSeg);
+  const loss=Math.max(0,...paths.map(p=>p.reduce((t,i)=>t+J(segs[i].q,segs[i].d)*segs[i].L*1.15,0)));
+  return{segs,len:segs.reduce((s,x)=>s+x.L,0),loss:loss/10.2};}
+function fishbone(g){
+  /* the main line goes straight in from the system head, across the zone; branches to the sides */
+  const sys=S.sys,hs=g.map(i=>S.heads[i]),cx=hs.reduce((a,h)=>a+h.x,0)/hs.length,cy=hs.reduce((a,h)=>a+h.y,0)/hs.length;
+  let dx=Math.abs(cx-sys.x),dy=Math.abs(cy-sys.y),horiz;
+  if(Math.max(dx,dy)>1.25*Math.min(dx,dy))horiz=dx>dy;
+  else{const P=dense().pts;let bi=0,bd=1e9;for(let i=0;i<P.length;i++){const d=segDist(sys,P[i],P[(i+1)%P.length]);if(d<bd){bd=d;bi=i;}}
+    const a=P[bi],b=P[(bi+1)%P.length];horiz=Math.abs(b.y-a.y)>Math.abs(b.x-a.x);}
+  const Bs=hs.map(h=>horiz?h.y:h.x),lo=Math.min(...Bs),hi=Math.max(...Bs),bs=horiz?sys.y:sys.x;
+  const bc=(bs>=lo+0.75&&bs<=hi-0.75)?bs:Bs.reduce((a,b)=>a+b,0)/Bs.length;
+  const n=fishCand(g,horiz,bc);n.out=outsideLen(n.segs);if(n.out<=0.6)return n;
+  let best=n;n.score=n.out*1000+n.len;
+  for(const hz of[true,false]){const B2=hs.map(h=>hz?h.y:h.x),l2=Math.min(...B2),h2=Math.max(...B2),cands=[B2.reduce((a,b)=>a+b,0)/B2.length];
+    for(let b=l2+0.5;b<=h2-0.5+1e-9;b+=0.5)cands.push(b);
+    for(const c of cands){const m=fishCand(g,hz,c);m.out=outsideLen(m.segs);m.score=m.out*1000+m.len+(Math.abs(c-l2)<0.3||Math.abs(c-h2)<0.3?5:0);if(m.score<best.score)best=m;}}
+  return best;}
+/* available flow from the wall: a bucket test runs almost without pressure, so only 75% of it is allowed */
+function availFlow(){const A=S.avail;if(A.mode==='bucket'&&A.sec>0)return +(0.75*10/A.sec*3.6).toFixed(2);if(A.mode==='known'&&A.q>0)return A.q;return null;}
+
+/* ---------- drawing ---------- */
+const svg=document.getElementById('board');
+function wedge(h,cls){const r=h.r;if(h.arc>=360)return`<circle class="${cls}" cx="${h.x}" cy="${h.y}" r="${r}"/>`;
+  const a=rad(h.start),b=rad(h.start+h.arc),p1=[h.x+r*Math.cos(a),h.y+r*Math.sin(a)],p2=[h.x+r*Math.cos(b),h.y+r*Math.sin(b)];
+  return`<path class="${cls}" d="M${h.x} ${h.y}L${p1[0]} ${p1[1]}A${r} ${r} 0 ${h.arc>180?1:0} 1 ${p2[0]} ${p2[1]}Z"/>`;}
+function render(){
+  const{ox,oy,W}=S.view,u=W/100,fs=W/30;svg.setAttribute('viewBox',`${ox} ${oy} ${W} ${W}`);
+  let g='';
+  for(let x=Math.ceil(ox);x<=ox+W;x++)g+=`<line class="grid${x%5===0?' g5':''}" x1="${x}" y1="${oy}" x2="${x}" y2="${oy+W}"/>`;
+  for(let y=Math.ceil(oy);y<=oy+W;y++)g+=`<line class="grid${y%5===0?' g5':''}" x1="${ox}" y1="${y}" x2="${ox+W}" y2="${y}"/>`;
+  const P=S.poly,pts=(S.closed?dense().pts:P).map(p=>`${p.x},${p.y}`).join(' ');
+  if(P.length)g+=S.closed?`<polygon class="lawn" points="${pts}"/>`:`<polyline class="lawn-open" points="${pts}"/>`;
+  S.heads.forEach((h,i)=>g+=wedge(h,`cov c${(R.zoneOf[i]??0)%6}${i===S.sel?' sel':''}`));
+  const PW={20:3,25:4.5,32:6,40:7,50:8};
+  R.zones?.forEach(z=>z.segs.forEach(sg=>{g+=`<line class="pcase" style="stroke-width:${PW[sg.mm]+3}px" x1="${sg.a.x}" y1="${sg.a.y}" x2="${sg.b.x}" y2="${sg.b.y}"/>`;}));
+  R.zones?.forEach(z=>z.segs.forEach(sg=>{g+=`<line class="pipe" style="stroke:var(--p${sg.mm});stroke-width:${PW[sg.mm]}px" x1="${sg.a.x}" y1="${sg.a.y}" x2="${sg.b.x}" y2="${sg.b.y}"/>`;}));
+  R.zones?.forEach(z=>{const seen={};z.segs.filter(x=>x.L>=1.2).sort((a,b)=>b.L-a.L).forEach(sg=>{if(seen[sg.mm])return;seen[sg.mm]=1;
+    const mx=(sg.a.x+sg.b.x)/2,my=(sg.a.y+sg.b.y)/2,hz=Math.abs(sg.b.x-sg.a.x)>=Math.abs(sg.b.y-sg.a.y);
+    g+=`<text class="plbl" style="fill:var(--p${sg.mm})" x="${mx+(hz?0:fs*0.9)}" y="${my+(hz?-fs*0.75:0)}" font-size="${fs*0.85}" text-anchor="${hz?'middle':'start'}" dominant-baseline="middle">${sg.mm} מ"מ</text>`;});});
+  const round=S.shape==='circle'&&S.closed,segs=round?0:S.closed?P.length:P.length-1,edit=S.mode==='lawn'&&S.closed;
+  if(round){const R0=S.dims.circle.R,c={x:R0,y:R0};g+=`<line class="rad" x1="${c.x}" y1="${c.y}" x2="${c.x+R0}" y2="${c.y}"/>`+
+    `<text class="lbl" x="${c.x+R0/2}" y="${c.y-fs*0.8}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle">רדיוס ${R0} מ'</text>`;}
+  for(let i=0;i<segs;i++){const a=P[i],b=P[(i+1)%P.length];if(dist(a,b)<0.5)continue;
+    const e=S.closed?edgePath(i):[a,b],L=pathLen(e),curved=e.length>2,mid=curved?e[8]:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},mx=mid.x,my=mid.y;
+    const{nx,ny}=S.closed?outward(i):{nx:0,ny:0},off=S.closed?fs*1.1:0,lx=mx+nx*off,ly=my+ny*off,txt=`${+L.toFixed(1)} מ'${curved?' קשת':''}`;
+    g+=`<text class="lbl${S.selE===i&&edit?' sel':''}" x="${lx}" y="${ly}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle">${txt}</text>`;
+    if(edit){g+=`<polyline class="hitl" data-kind="edge" data-i="${i}" points="${e.map(p=>p.x+','+p.y).join(' ')}"/>`+
+      `<rect class="hit" data-kind="edge" data-i="${i}" x="${lx-fs*1.8}" y="${ly-fs*0.9}" width="${fs*3.6}" height="${fs*1.8}"/>`+
+      `<circle class="addh" cx="${mx}" cy="${my}" r="${u*2.3}"/><text class="addt" x="${mx}" y="${my}" font-size="${fs*1.1}" text-anchor="middle" dominant-baseline="central">+</text>`+
+      `<circle class="hit" data-kind="add" data-i="${i}" cx="${mx}" cy="${my}" r="${u*4}"/>`;}}
+  if(S.mode==='lawn'&&S.shape==='free'&&!S.closed&&S.preview){const pv=S.preview,l=P[P.length-1];
+    if(l){const L=dist(l,pv);g+=`<line class="lawn-open" x1="${l.x}" y1="${l.y}" x2="${pv.x}" y2="${pv.y}"/>`;
+      if(L>=0.5)g+=`<text class="lbl sel" x="${(l.x+pv.x)/2}" y="${(l.y+pv.y)/2-fs*0.9}" font-size="${fs*1.1}" text-anchor="middle" dominant-baseline="middle">${+L.toFixed(1)} מ'</text>`;}
+    g+=`<circle class="pv" cx="${pv.x}" cy="${pv.y}" r="${u*1.6}"/>`;}
+  R.cov?.dry.slice(0,400).forEach(p=>g+=`<circle class="dry" cx="${p.x}" cy="${p.y}" r="${u*0.9}"/>`);
+  S.heads.forEach((h,i)=>{
+    g+=`<circle class="head c${(R.zoneOf[i]??0)%6}${i===S.sel?' sel':''}" cx="${h.x}" cy="${h.y}" r="${u*1.8}"/>`;
+    if(S.mode==='heads')g+=`<circle class="hit" data-kind="head" data-i="${i}" cx="${h.x}" cy="${h.y}" r="${u*4.5}"/>`;});
+  if(S.mode==='lawn'&&!round)P.forEach((p,i)=>{const near=!S.closed&&i===0&&S.preview?.close;
+    g+=`<circle class="vtx${i===0&&!S.closed?' first':''}${S.selV===i||near?' sel':''}" cx="${p.x}" cy="${p.y}" r="${u*(near?2.4:1.6)}"/>`+
+    `<circle class="hit" data-kind="vtx" data-i="${i}" cx="${p.x}" cy="${p.y}" r="${u*4.5}"/>`;});
+  if(S.sys){const s=u*2.6,{x,y}=S.sys;g+=`<rect class="sysb" x="${x-s}" y="${y-s}" width="${2*s}" height="${2*s}"/>`+
+    `<line class="sysx" x1="${x-s}" y1="${y-s}" x2="${x+s}" y2="${y+s}"/><line class="sysx" x1="${x+s}" y1="${y-s}" x2="${x-s}" y2="${y+s}"/>`;
+    if(S.mode==='sys')g+=`<circle class="hit" data-kind="sys" cx="${x}" cy="${y}" r="${u*5}"/>`;}
+  if(R.zones&&R.zones.length>1)R.zones.forEach((z,zi)=>{const hs=z.heads.map(i=>S.heads[i]),cx=hs.reduce((a,h)=>a+h.x,0)/hs.length,cy=hs.reduce((a,h)=>a+h.y,0)/hs.length;
+    g+=`<text class="zlbl" style="fill:var(--z${zi%6})" x="${cx}" y="${cy}" font-size="${fs*1.15}" text-anchor="middle" dominant-baseline="middle">הפעלה ${zi+1}</text>`;});
+  if(S.sys)g+=`<text class="lbl" x="${S.sys.x}" y="${S.sys.y-u*2.6-fs*0.8}" font-size="${fs*0.85}" text-anchor="middle" dominant-baseline="middle">ראש מערכת</text>`;
+  svg.innerHTML=g;renderLegend();}
+function renderLegend(){const el=document.getElementById('legend');if(!el)return;
+  const key=`<div class="lg"><span><i class="lgl"></i>גבול הדשא</span><span><i class="lgc"></i>אזור ההרטבה של ממטיר</span><span><i class="lgz" style="background:var(--z0)"></i>ממטיר</span><span><i class="lgs"></i>ראש מערכת</span></div>`;
+  if(!R.zones){el.innerHTML=key;return;}
+  el.innerHTML=key+`<div class="lg"><b>צינורות:</b>${R.pipes.map(p=>`<span><i class="lgp" style="background:var(--p${p.mm});height:${({20:3,25:4.5,32:6,40:7,50:8})[p.mm]}px"></i>${p.mm} מ"מ · <span class="num">${Math.ceil(p.len)}</span> מ'</span>`).join('')}</div>
+    <div class="lg"><b>הפעלות:</b>${R.zones.map((z,i)=>`<span><i class="lgz" style="background:var(--z${i%6})"></i>הפעלה ${i+1}</span>`).join('')}</div>`;}
+
+/* ---------- pointer interaction ---------- */
+function toW(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const r=p.matrixTransform(svg.getScreenCTM().inverse());return{x:r.x,y:r.y};}
+let drag=null,raf=0;
+const soon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;update(false);});};
+const drawing=()=>S.mode==='lawn'&&S.shape==='free'&&!S.closed;
+const soonDraw=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;render();});};
+svg.addEventListener('pointerdown',e=>{const t=e.target.closest('[data-kind]'),p=toW(e);
+  drag={kind:t?t.dataset.kind:'bg',i:t?+(t.dataset.i??-1):-1,p0:p,moved:false};svg.setPointerCapture(e.pointerId);e.preventDefault();
+  if(drawing()&&drag.kind!=='vtx'){S.preview=smartPt(p);soonDraw();}});
+svg.addEventListener('pointermove',e=>{const p=toW(e);
+  if(drawing()&&(!drag||drag.kind!=='vtx')){S.preview=smartPt(p);if(drag)drag.moved=true;soonDraw();return;}
+  if(!drag)return;
+  if(!drag.moved&&dist(p,drag.p0)<S.view.W/50)return;drag.moved=true;
+  if(drag.kind==='vtx'&&S.mode==='lawn'){S.poly[drag.i]=snap(p);if(S.closed)S.shape='free';S.selV=drag.i;S.selE=-1;}
+  else if(drag.kind==='head'&&S.mode==='heads'){const h=S.heads[drag.i];h.x=+p.x.toFixed(2);h.y=+p.y.toFixed(2);orient(h);S.sel=drag.i;}
+  else if(drag.kind==='sys'&&S.mode==='sys')S.sys=snap(p);
+  else return;soon();});
+svg.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;
+  if(drawing()&&d.kind!=='vtx'){const pv=S.preview||smartPt(d.p0);
+    if(pv.close){S.preview=null;closeShape();return;}
+    const l=S.poly[S.poly.length-1];if(!l||dist(l,pv)>=0.25)S.poly.push({x:pv.x,y:pv.y});update(true);return;}
+  if(!d.moved)tap(d);
+  else{if(d.kind==='vtx'&&S.closed)autoPlace();update(true);}});
+svg.addEventListener('pointercancel',()=>{drag=null;});
+svg.addEventListener('pointerleave',()=>{if(!drag&&S.preview){S.preview=null;render();}});
+function tap(d){const p=d.p0;
+  if(S.mode==='lawn'){
+    if(!S.closed){if(d.kind==='vtx'&&d.i===0&&S.poly.length>=3)closeShape();return;}
+    if(d.kind==='edge'){S.selE=d.i;S.selV=-1;}
+    else if(d.kind==='vtx'){S.selV=d.i;S.selE=-1;}
+    else if(d.kind==='add'){const e=edgePath(d.i),mid=e.length>2?e[8]:{x:(e[0].x+e[1].x)/2,y:(e[0].y+e[1].y)/2};
+      shiftBulge(d.i,+1);S.poly.splice(d.i+1,0,snap(mid));S.shape='free';S.selV=d.i+1;S.selE=-1;autoPlace();}
+    else{S.selV=-1;S.selE=-1;}}
+  else if(S.mode==='sys'){S.sys=snap(p);}
+  else if(S.mode==='heads'){
+    if(d.kind==='head')S.sel=d.i;
+    else if(S.closed&&inside(p)){const m=model();S.heads.push({x:+p.x.toFixed(2),y:+p.y.toFixed(2),arc:360,start:0,r:+((m.rmin+m.rmax)/2).toFixed(1)});S.sel=S.heads.length-1;}
+    else S.sel=-1;}
+  update(true);}
+function closeShape(){if(S.poly.length<3)return;S.closed=true;autoPlace();fit();setMode(S.sys?'heads':'sys');}
+
+/* ---------- view ---------- */
+function fit(){const pts=[...S.poly,...(S.sys?[S.sys]:[])];if(!pts.length){S.view={ox:-2,oy:-2,W:20};return;}
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const W=Math.max(8,Math.max(x1-x0,y1-y0)+4);S.view={ox:(x0+x1)/2-W/2,oy:(y0+y1)/2-W/2,W};}
+function zoom(f){const v=S.view,cx=v.ox+v.W/2,cy=v.oy+v.W/2,W=Math.min(120,Math.max(5,v.W*f));S.view={ox:cx-W/2,oy:cy-W/2,W};render();}
+document.getElementById('zin').onclick=()=>zoom(0.8);
+document.getElementById('zout').onclick=()=>zoom(1.25);
+document.getElementById('zfit').onclick=()=>{fit();render();};
+
+/* ---------- step panel ---------- */
+const panel=document.getElementById('panel');
+function setMode(m){S.mode=m;S.sel=-1;S.selV=-1;S.selE=-1;S.preview=null;update(true);}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+const f2=x=>(+x).toFixed(2);
+/* keep arcs on the right sides when a corner is added after side i (+1) or corner i is removed (-1) */
+function shiftBulge(i,dir){const n=S.poly.length,B={};for(const[k,v]of Object.entries(S.bulge)){const j=+k;
+  if(dir>0){if(j<i)B[j]=v;else if(j>i)B[j+1]=v;}
+  else{const prev=(i-1+n)%n;if(j===i||j===prev)continue;B[j>i?j-1:j]=v;}}S.bulge=B;}
+const dimsReady=()=>!!DIMS[S.shape]&&DIMS[S.shape].every(([k])=>S.dims[S.shape][k]>0);
+function clearLawn(){S.bulge={};S.poly=[];S.closed=false;S.heads=[];S.preview=null;S.selV=-1;S.selE=-1;S.view={ox:-2,oy:-2,W:20};}
+function applyShape(){if(!dimsReady()){clearLawn();return;}S.bulge={};S.poly=shapePoly();S.closed=true;S.selV=-1;S.selE=-1;autoPlace();
+  if(S.sys&&edgeDist(S.sys)>3&&!inside(S.sys))S.sys=null;fit();}
+const ICON={
+  rect:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="6" width="18" height="12" fill="currentColor" opacity=".35" stroke="currentColor" stroke-width="2"/></svg>',
+  L:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 4h18v7h-11v9h-7z" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  U:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 4h18v16h-6v-9h-6v9h-6z" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  circle:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="2"/></svg>',
+  free:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 18l3-12 9 2 4 8-9 3z" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'};
+function renderPanel(){
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
+  let h='';
+  if(S.mode==='lawn'){
+    const names={rect:'מלבן',L:'צורת L',U:'צורת U',circle:'עיגול',free:'ציור חופשי'};
+    h=`<h3>איך נראה הדשא?</h3>
+      <div class="chips">${Object.keys(names).map(k=>`<button class="chip shape" data-shape="${k}" aria-pressed="${S.shape===k}">${ICON[k]}${names[k]}</button>`).join('')}</div>
+      ${S.shape?'':'<p class="hint">בחר את הצורה שהכי דומה לדשא שלך. אם אף אחת לא מתאימה, בחר "ציור חופשי" וצייר באצבע.</p>'}`;
+    if(DIMS[S.shape])h+=`<div class="row">${DIMS[S.shape].map(([k,t])=>`<label class="f" for="d-${k}">${t} (מ')<input id="d-${k}" data-dim="${k}" type="number" step="0.5" min="0.5" value="${S.dims[S.shape][k]??''}" placeholder="מטרים" inputmode="decimal"></label>`).join('')}</div>
+      <p class="hint">${dimsReady()?'מספיק בערך. המידות מופיעות גם על השרטוט.':'הקלד את המידות, והדשא יופיע בשרטוט.'}</p>`;
+    if(S.closed){
+      if(S.selE>=0&&S.poly[S.selE]){const a=S.poly[S.selE],b=S.poly[(S.selE+1)%S.poly.length];
+        const bg=S.bulge[S.selE]||0,maxB=Math.max(0.5,+(dist(a,b)/2).toFixed(1));
+        h+=`<div class="selcard"><b>צלע נבחרת</b><div class="row" style="align-items:flex-end">
+          <label class="f" for="elen">אורך ישר, מפינה לפינה (מ')<input id="elen" type="number" step="0.1" min="0.5" value="${+dist(a,b).toFixed(2)}"></label>
+          <button class="btn primary" id="eset">עדכן</button></div>
+          <div class="chips">${[['0','ישר'],['1','קשת החוצה'],['-1','קשת פנימה']].map(([v,t])=>`<button class="chip" data-bend="${v}" aria-pressed="${Math.sign(bg)===+v}">${t}</button>`).join('')}</div>
+          ${bg?`<label class="f" for="bdep">עומק הקשת: <span id="bdv" class="num">${Math.abs(bg).toFixed(1)}</span> מ'<input id="bdep" type="range" min="0.5" max="${maxB}" step="0.25" value="${Math.min(maxB,Math.abs(bg))}"></label>`:''}</div>`;}
+      else if(S.selV>=0&&S.poly[S.selV])h+=`<div class="selcard"><b>פינה נבחרת</b><p class="hint">גרור אותה למקום הנכון.</p>
+          ${S.poly.length>3?'<div class="row"><button class="btn danger" id="vdel">מחק פינה</button></div>':''}</div>`;
+      else if(S.shape!=='circle')h+=`<div class="tip"><b>רוצה צלע מעוגלת (קשת)?</b> לחץ על הצלע בשרטוט ובחר "קשת החוצה" או "קשת פנימה". אפשר גם להקליד אורך מדויק, לגרור פינה, או ללחוץ על + באמצע צלע כדי להוסיף פינה.</div>`;
+      h+=`<p class="hint">שטח הדשא: <b class="num">${area().toFixed(0)}</b> מ"ר.</p>
+        <div class="row"><button class="btn primary" id="next1">המשך לראש המערכת</button>${S.shape==='free'?'<button class="btn danger" id="reset">צייר מחדש</button>':''}</div>`;}
+    else if(S.shape==='free')h+=`<div class="tip">${S.poly.length?'גע ברשת וגרור אל הפינה הבאה. המידה מופיעה תוך כדי, והקו מתיישר לבד כשהוא כמעט ישר. שחרר כדי לקבע.':'גע ברשת במקום של הפינה הראשונה. כל משבצת היא מטר אחד.'}
+        ${S.poly.length>=3?' כדי לסגור, חזור לנקודה הראשונה.':''}</div>
+       <div class="row"><button class="btn" id="undo"${S.poly.length?'':' disabled'}>בטל נקודה</button>
+         <button class="btn primary" id="close"${S.poly.length>=3?'':' disabled'}>סגור צורה</button>
+         <button class="btn danger" id="reset">נקה</button></div>`;
+  } else if(S.mode==='sys'){
+    h=`<h3>איפה ראש המערכת?</h3>
+      <p class="hint">לחץ בשרטוט במקום שממנו יוצאים המים (הריבוע עם האיקס). אפשר לגרור אותו.</p>
+      <h3>מה גודל ההכנה בקיר (הכניסה לראש המערכת)?</h3>
+      <div class="chips">${INLETS.map(i=>`<button class="chip" data-inlet="${i.id}" aria-pressed="${!S.inletUnknown&&S.inlet===i.id}">${i.label}</button>`).join('')}
+        <button class="chip" data-inlet="?" aria-pressed="${S.inletUnknown}">לא יודע</button></div>
+      <div class="tip">${S.inletUnknown
+        ?`איך בודקים: מודדים בסרגל את העובי החיצוני של ההברגה בכניסה לברז. כ-2 ס"מ זה ½ צול, כ-2.6 ס"מ זה ¾ צול, כ-3.3 ס"מ זה 1 צול. עד שתבדוק, המחשבון מניח ¾ צול, הגודל הנפוץ בבתים.`
+        :`כניסה של ${inlet().label} מעבירה לכל היותר <b class="num">${inlet().cap}</b> מ"ק לשעה. זה גבול עליון: כמה מים יוצאים בפועל תלוי גם בצינור שמזין את הברז ובלחץ ברשת, ולכן כדאי לבדוק למטה.`}</div>
+      <h3>כמה מים יוצאים מהברז?</h3>
+      <div class="chips">${[['bucket','מבחן דלי'],['known','אני יודע את הספיקה'],['none','לא בדקתי']].map(([k,t])=>`<button class="chip" data-avail="${k}" aria-pressed="${S.avail.mode===k}">${t}</button>`).join('')}</div>
+      ${S.avail.mode==='bucket'?`<div class="tip">פותחים את הברז עד הסוף ומודדים כמה שניות לוקח למלא דלי של 10 ליטר. המחשבון מתיר להפעלה 75% מהתוצאה, כי בזמן ההשקיה הלחץ יורד.</div>
+        <label class="f" for="bsec">שניות למילוי 10 ליטר<input id="bsec" type="number" step="1" min="1" value="${S.avail.sec}"></label>
+        <p class="hint">ספיקה מותרת להפעלה: <b class="num">${f2(availFlow())}</b> מ"ק לשעה.</p>`:''}
+      ${S.avail.mode==='known'?`<label class="f" for="aq">ספיקה זמינה בלחץ עבודה (מ"ק/ש')<input id="aq" type="number" step="0.1" min="0.1" value="${S.avail.q}"></label>`:''}
+      ${S.avail.mode==='none'?`<div class="tip">בלי בדיקה, המחשבון מתבסס רק על גודל ההכנה בקיר. מבחן דלי לוקח דקה, ומונע תכנון שלא יעבוד בשטח.</div>`:''}
+      ${S.sys?`<div class="row"><button class="btn primary" id="next2">המשך לממטירים</button></div>`:''}`;
+  } else {
+    if(!S.closed){panel.innerHTML=`<p class="hint">קודם מסמנים את הדשא בשלב 1.</p>`;return;}
+    const am=autoModel();
+    h=`<h3>הממטירים</h3>
+      <p class="hint">המחשבון בחר והציב ממטירים: בפינות, לאורך הצדדים, ובאמצע אם צריך. אפשר לגרור ממטיר, ללחוץ על שטח ריק כדי להוסיף, או ללחוץ על ממטיר כדי לשנות אותו.</p>
+      <label class="f" for="mdl">דגם ממטיר<select id="mdl">
+        <option value="auto">אוטומטי - ${am.id} (מומלץ)</option>
+        ${MODELS.map(m=>`<option value="${m.id}"${m.id===S.modelSel?' selected':''}>${m.id} - טווח ${m.rmin} עד ${m.rmax} מ' ב-2.8 בר</option>`).join('')}</select></label>
+      <div class="row"><button class="btn primary" id="auto">סדר מחדש אוטומטית</button></div>
+      <div class="tip">הצנרת משורטטת כ"שדרת דג": קו ראשי אחד יוצא ישר מראש המערכת וחוצה את הדשא, ומכל ממטיר יוצאת אליו שלוחה ישרה.</div>`;
+    if(S.sel>=0&&S.heads[S.sel]){const hd=S.heads[S.sel],m=model();
+      h+=`<div class="selcard"><div class="row" style="justify-content:space-between"><b>ממטיר נבחר</b><span><span class="num">${hd.arc}°</span> · <span class="num">${f2(flow(m,hd.arc))}</span> מ"ק/ש'</span></div>
+        <div class="chips">${[[90,'פינה'],[180,'צד'],[270,'פינה פנימית'],[360,'אמצע']].map(([a,t])=>`<button class="chip arc" data-a="${a}" aria-pressed="${hd.arc===a}">${t} ${a}°</button>`).join('')}</div>
+        <div class="row"><button class="btn" id="rotl">סובב ↺</button><button class="btn" id="rotr">סובב ↻</button><button class="btn danger" id="del">מחק</button></div>
+        <label class="f" for="rr">טווח: <span id="rrv" class="num">${hd.r.toFixed(1)}</span> מ'<input id="rr" type="range" min="${m.rmin}" max="${rAt(m,hd.arc)}" step="0.1" value="${hd.r}"></label>
+        ${hd.warn?`<p class="hint" style="color:var(--warn)">${hd.warn}</p>`:''}</div>`;}
+  }
+  panel.innerHTML=h;
+  const on=(id,ev,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener(ev,fn);};
+  panel.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{S.shape=b.dataset.shape;
+    if(DIMS[S.shape])applyShape();else clearLawn();update(true);});
+  panel.querySelectorAll('[data-dim]').forEach(inp=>inp.addEventListener('change',e=>{const raw=e.target.value.trim(),v=+raw;
+    S.dims[S.shape][inp.dataset.dim]=raw&&v>0?Math.min(100,v):null;applyShape();update(true);
+    if(!dimsReady()){const nx=[...panel.querySelectorAll('[data-dim]')].find(i=>!i.value);if(nx)nx.focus();}}));
+  const eset=()=>{const v=+document.getElementById('elen').value;if(v>0){setEdge(S.selE,v);update(true);}};
+  on('eset','click',eset);on('elen','keydown',e=>{if(e.key==='Enter')eset();});
+  panel.querySelectorAll('[data-bend]').forEach(b=>b.onclick=()=>{const v=+b.dataset.bend,cur=Math.abs(S.bulge[S.selE]||0)||1;
+    if(v)S.bulge[S.selE]=v*cur;else delete S.bulge[S.selE];S.shape='free';autoPlace();update(true);});
+  on('bdep','input',e=>{const v=+e.target.value,sg=Math.sign(S.bulge[S.selE]||1);S.bulge[S.selE]=sg*v;
+    document.getElementById('bdv').textContent=v.toFixed(1);autoPlace();update(false);});
+  on('vdel','click',()=>{shiftBulge(S.selV,-1);S.poly.splice(S.selV,1);S.selV=-1;S.shape='free';autoPlace();update(true);});
+  const toBoard=()=>{try{document.querySelector('.tabs').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}catch(e){}};
+  on('next1','click',()=>{setMode('sys');toBoard();});
+  on('next2','click',()=>{setMode('heads');toBoard();});
+  on('undo','click',()=>{S.poly.pop();update(true);});
+  on('close','click',closeShape);
+  on('reset','click',()=>{S.bulge={};S.poly=[];S.closed=false;S.heads=[];S.sel=-1;S.view={ox:-2,oy:-2,W:20};update(true);});
+  panel.querySelectorAll('[data-inlet]').forEach(b=>b.onclick=()=>{const v=b.dataset.inlet;
+    if(v==='?'){S.inletUnknown=true;S.inlet='3/4';}else{S.inletUnknown=false;S.inlet=v;}update(true);});
+  panel.querySelectorAll('[data-avail]').forEach(b=>b.onclick=()=>{S.avail.mode=b.dataset.avail;update(true);});
+  on('bsec','change',e=>{const v=+e.target.value;if(v>0){S.avail.sec=v;update(true);}});
+  on('aq','change',e=>{const v=+e.target.value;if(v>0){S.avail.q=v;update(true);}});
+  on('mdl','change',e=>{S.modelSel=e.target.value;autoPlace();update(true);});
+  on('auto','click',()=>{autoPlace();update(true);});
+  panel.querySelectorAll('.arc').forEach(b=>b.onclick=()=>{const h=S.heads[S.sel];h.arc=+b.dataset.a;h.warn='';h.r=clampR(h.r,model(),h.arc);orient(h);update(true);});
+  on('rotl','click',()=>{const h=S.heads[S.sel];h.start=((h.start||0)-15+360)%360;update(true);});
+  on('rotr','click',()=>{const h=S.heads[S.sel];h.start=((h.start||0)+15)%360;update(true);});
+  on('del','click',()=>{S.heads.splice(S.sel,1);S.sel=-1;update(true);});
+  on('rr','input',e=>{S.heads[S.sel].r=+e.target.value;document.getElementById('rrv').textContent=(+e.target.value).toFixed(1);update(false);});
+}
+
+/* ---------- results ---------- */
+const resEl=document.getElementById('results'),shopEl=document.getElementById('shop');
+function renderResults(){
+  if(!S.closed){resEl.innerHTML=`<div class="verdict idle"><b class="big">סמן את הדשא כדי להתחיל</b></div>`;renderShop();return;}
+  if(!S.heads.length){resEl.innerHTML=`<div class="verdict idle"><b class="big">אין ממטירים עדיין</b><span>בשלב 3 לחץ "סדר מחדש אוטומטית".</span></div>`;renderShop();return;}
+  if(!S.sys){resEl.innerHTML=`<div class="verdict idle"><b class="big">סמן איפה ראש המערכת</b><span>בשלב 2. משם המחשבון ימתח צינורות ויחלק להפעלות.</span></div>`;renderShop();return;}
+  const Z=R.zones,nz=Z.length,inl=inlet(),av=availFlow();
+  const need=Math.max(...Z.map(z=>z.need)),worst=Z.findIndex(z=>z.need===need);
+  const why={inlet:`הכנה של ${inl.label} מעבירה לכל היותר ${inl.cap} מ"ק לשעה`,
+    avail:`מהברז זמינים ${f2(av)} מ"ק לשעה להפעלה${S.avail.mode==='bucket'?' (75% ממבחן הדלי)':''}`,
+    pipe:`צינור ${R.fixed?R.fixed.mm:''} מ"מ מעביר עד ${R.limit} מ"ק לשעה`}[R.limitBy];
+  const warns=[...new Set(S.heads.filter(h=>h.warn).map(h=>h.warn))];
+  let h=`<div class="verdict${nz>1?' warn':''}">
+    <b class="big">${nz===1?'הפעלה אחת מספיקה':`צריך לחלק ל-${nz} הפעלות`}</b>
+    <span>${nz===1
+      ?`כל ${S.heads.length} הממטירים יכולים לעבוד ביחד. הם צריכים <span class="num">${f2(R.total)}</span> מ"ק לשעה, ו${why}.`
+      :`הממטירים צריכים יחד <span class="num">${f2(R.total)}</span> מ"ק לשעה, אבל ${why}. לכן מחלקים אותם ל-${nz} קבוצות שעובדות אחת אחרי השנייה. כל קבוצה צבועה בשרטוט בצבע אחר.`}</span>
+    <span><b>צינורות:</b> ${R.pipes.map((p,i)=>`${p.mm} מ"מ (כ-${Math.ceil(p.len)} מ')${R.pipes.length>1?(i===0?' לקו הראשי':i===R.pipes.length-1?' לשלוחות לממטירים':''):''}`).join(', ')}.${S.pipe==='auto'&&R.pipes.length>1?' הצינור העבה נמצא היכן שעוברים הרבה מים, והדק היכן שעוברים מעט.':''}</span>
+    ${av==null?'<span style="color:var(--warn)">לא נבדק כמה מים יוצאים מהברז. החלוקה מבוססת רק על גודל ההכנה בקיר. מומלץ לעשות מבחן דלי בשלב 2.</span>':''}
+  </div>
+  ${R.cov?`<p class="hint">כיסוי מים: <b class="num">${Math.round(R.cov.one*100)}%</b> מהדשא${R.cov.dry.length?' <b style="color:var(--bad)">(הנקודות האדומות לא מקבלות מים. לחץ "סדר מחדש אוטומטית" או הוסף ממטיר)</b>':''}. חפיפה ראש לראש (לפחות 2 ממטירים): <b class="num">${Math.round(R.cov.two*100)}%</b>${R.cov.two<0.9?' <span style="color:var(--warn)">(נמוך: כדאי להוסיף ממטיר או לקרב ממטירים)</span>':''}.</p>`:''}
+  ${warns.length?`<p class="hint" style="color:var(--warn)">${warns.join('. ')}.</p>`:''}
+  <div class="stats">
+    <div class="stat"><span>ממטירים</span><strong class="num">${S.heads.length}</strong></div>
+    <div class="stat"><span>הפעלות</span><strong class="num">${nz}</strong></div>
+    <div class="stat"><span>שטח</span><strong class="num">${area().toFixed(0)}</strong><span>מ"ר</span></div>
+  </div>
+  <div class="zones">${Z.map((z,i)=>`<div class="zone"><span class="sw c${i%6}"></span>
+    <span class="zt">הפעלה ${i+1}: ${z.heads.length} ממטירים, כ-<span class="num">${Math.ceil(z.len)}</span> מ' צינור, לחץ נדרש כ-<span class="num">${z.need.toFixed(1)}</span> בר</span>
+    <span class="zq"><span class="num">${f2(z.q)}</span> מ"ק/ש'</span></div>`).join('')}</div>
+  <p class="hint">${S.pin<need
+    ?`<b style="color:var(--bad)">הלחץ בברז (${S.pin} בר) כנראה נמוך מדי.</b> הפעלה ${worst+1} צריכה כ-${need.toFixed(1)} בר בראש המערכת: 2.8 בממטיר, <span class="num">${Z[worst].loss.toFixed(2)}</span> בצינור, <span class="num">${Z[worst].valve.toFixed(2)}</span> בברז החשמלי, 0.2 במסנן${S.elev?`, <span class="num">${(S.elev/10.2).toFixed(2)}</span> לגובה`:''}. כדאי לחלק ליותר הפעלות או לבדוק את הלחץ.`
+    :`הלחץ מספיק: ההפעלה הקשה צריכה כ-${need.toFixed(1)} בר בראש המערכת, ויש ${S.pin} בר. ברשימת הקניות יש גופים שמווסתים ל-2.8 בר בעצמם.`}</p>`;
+  resEl.innerHTML=h;renderShop();}
+function shopList(){
+  const m=model(),n=S.heads.length,L=[];if(!n)return L;
+  const c={};S.heads.forEach(h=>{const k=h.arc>=360?'360':h.arc>210?'210':'90';c[k]=(c[k]||0)+1;});
+  const lab={'90':['פינות וצדדים (90° עד 210°)'],'210':['פינות פנימיות (210° עד 270°)'],'360':['אמצע הדשא (מעגל מלא)']};
+  ['90','210','360'].forEach(k=>c[k]&&L.push([`פיית ${m.id}-${k}`,lab[k][0],c[k]]));
+  L.push(['גוף ממטיר נשלף 10 ס"מ עם וסת 2.8 בר','דגם PRS40, אחד לכל פיה',n]);
+  if(R.zones){const len=Math.ceil(R.zones.reduce((s,z)=>s+z.len,0)*1.1),nz=R.zones.length;
+    R.pipes.forEach(p=>L.push([`צינור פוליאתילן ${p.mm} מ"מ`,'כולל 10% רזרבה',`${Math.ceil(p.len*1.1)} מ'`]));
+    L.push(['מחברים לצינור','מחבר T או זווית לכל ממטיר, ועוד כמה רזרבה',n+2]);
+    L.push(['ברז חשמלי 1 צול (PGV)','אחד לכל הפעלה',nz]);
+    L.push(['מסנן',`בגודל ${inlet().label}`,1]);
+    L.push(['מחשב השקיה',nz>1?`עם ${nz} תחנות לפחות`:'תחנה אחת מספיקה',1]);}
+  return L;}
+function renderShop(){shopEl.innerHTML=shopList().map(([k,s,v])=>`<li><span>${k}<small>${s}</small></span><b class="num">${v}</b></li>`).join('')||'<li><span class="hint">הרשימה תופיע אחרי שיהיו ממטירים וראש מערכת.</span></li>';}
+document.getElementById('copy').onclick=async e=>{const t=shopList().map(([k,s,v])=>`${k} (${s}): ${v}`).join('\n');const b=e.currentTarget;
+  try{await navigator.clipboard.writeText(t);b.textContent='הועתק';}
+  catch{const r=document.createRange();r.selectNodeContents(shopEl);const sl=getSelection();sl.removeAllRanges();sl.addRange(r);b.textContent='סומן, העתק ידנית';}
+  setTimeout(()=>b.textContent='העתק רשימה',1800);};
+document.getElementById('pipe').onchange=e=>{S.pipe=e.target.value;update(false);};
+document.getElementById('pin').oninput=e=>{const v=+e.target.value;if(v>0){S.pin=v;update(false);}};
+document.getElementById('elev').oninput=e=>{const v=+e.target.value;if(Number.isFinite(v)){S.elev=v;update(false);}};
+
+/* ---------- loop ---------- */
+function update(withPanel){inv();compute();render();if(withPanel)renderPanel();renderResults();}
+fit();update(true);
+
+/* ---------- first-visit guide ---------- */
+const GUIDE=[
+  {t:'מסמנים את הדשא',p:'בוחרים צורה ומקלידים מידות, או מציירים באצבע. כל משבצת בשרטוט היא מטר אחד.',
+   s:'<svg viewBox="0 0 120 80"><g class="gg"><path d="M0 20H120M0 40H120M0 60H120M20 0V80M40 0V80M60 0V80M80 0V80M100 0V80"/></g><rect class="glawn" x="20" y="20" width="80" height="40"/><text class="glbl" x="60" y="15" text-anchor="middle">8 מ\'</text></svg>'},
+  {t:'מסמנים את ראש המערכת',p:'לוחצים במקום שממנו יוצאים המים, ובוחרים את גודל הכניסה. לא יודעים? יש הסבר איך למדוד.',
+   s:'<svg viewBox="0 0 120 80"><rect class="glawn" x="20" y="25" width="80" height="45"/><rect class="gsys" x="52" y="8" width="16" height="16"/><path class="gsysx" d="M52 8l16 16M68 8l-16 16"/></svg>'},
+  {t:'מקבלים תוכנית',p:'המחשבון מציב ממטירים, מחלק להפעלות לפי כמות המים שיש, ונותן רשימת קניות.',
+   s:'<svg viewBox="0 0 120 80"><rect class="glawn" x="20" y="15" width="80" height="50"/><path class="gcov" d="M20 15h30a30 30 0 0 1-30 30z"/><path class="gcov" d="M100 15v30a30 30 0 0 1-30-30z"/><path class="gcov" d="M20 65v-30a30 30 0 0 1 30 30z"/><path class="gcov" d="M100 65h-30a30 30 0 0 1 30-30z"/><circle class="ghead" cx="20" cy="15" r="4"/><circle class="ghead" cx="100" cy="15" r="4"/><circle class="ghead" cx="20" cy="65" r="4"/><circle class="ghead" cx="100" cy="65" r="4"/></svg>'}];
+const gEl=document.getElementById('guide');let gi=0;
+function showGuide(i){gi=i;const g=GUIDE[i];gEl.hidden=false;
+  gEl.querySelector('.gart').innerHTML=g.s;gEl.querySelector('h2').textContent=g.t;gEl.querySelector('p').textContent=g.p;
+  gEl.querySelector('.dots').innerHTML=GUIDE.map((_,k)=>`<i${k===i?' class="on"':''}></i>`).join('');
+  document.getElementById('gnext').textContent=i<GUIDE.length-1?'הבא':'בוא נתחיל';document.getElementById('gnext').focus();}
+function closeGuide(){gEl.hidden=true;try{localStorage.setItem('gp_guide_done','1');}catch(e){}}
+document.getElementById('gnext').onclick=()=>gi<GUIDE.length-1?showGuide(gi+1):closeGuide();
+document.getElementById('gskip').onclick=closeGuide;
+document.getElementById('help').onclick=()=>showGuide(0);
+let seen=false;try{seen=localStorage.getItem('gp_guide_done')==='1';}catch(e){}
+if(!seen)showGuide(0);
+</script>
+
+</body>
+</html>
