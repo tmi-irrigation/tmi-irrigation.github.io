@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Kd6QTllNmmhIpKSz+beeKwkBORNDL8MtWTRZQN12oyk='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-cUaQ5RwVMtKl61ppr9w5d2jde2i4aGyvtiaW6bXmXTY='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="מחשבון פשוט לתכנון השקיית דשא ביתי: ממטירים, חלוקה להפעלות, צנרת ורשימת קניות.">
@@ -141,7 +141,7 @@ dd{margin:0;color:var(--muted)}
 .cta{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--brand) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--brand) 35%,transparent)}
 .cta b{font-family:var(--display);font-size:1.05rem}
 .cta a.btn{text-decoration:none}
-.cta .mail{user-select:all}
+.cta .mail{user-select:all;color:var(--brand);font-weight:700}
 .calc code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;direction:ltr;unicode-bidi:isolate;display:inline-block;max-width:100%;overflow-x:auto;color:var(--fg)}
 .lbl.sel{fill:var(--water)}
 .vtx.sel{fill:var(--water);stroke:var(--water)}
@@ -261,6 +261,8 @@ body{overflow:hidden;overscroll-behavior:none}
       <div class="panel" id="panel"></div>
       <div class="pane" id="resultsPane" hidden>
         <div id="results" style="display:flex;flex-direction:column;gap:12px"></div>
+        <div class="row"><button class="btn primary" id="saveimg">שמור תמונה של התכנית</button><button class="btn" id="sharelist">שתף רשימת קניות</button></div>
+        <p class="disc" id="exportmsg" hidden></p>
         <p class="disc">הערכה כללית לשימוש פרטי בלבד, לא תכנון מקצועי. ייתכנו סטיות בשטח, והשימוש באחריות המשתמש.</p>
         <div id="contact"></div>
         <div class="legend" id="legend" aria-label="מקרא"></div>
@@ -358,7 +360,7 @@ const rAt=(m,arc)=>{const ks=Object.keys(m.ra).map(Number).sort((a,b)=>a-b);if(a
   for(let i=1;i<ks.length;i++)if(arc<=ks[i])return Math.min(m.ra[ks[i-1]],m.ra[ks[i]]);return m.ra[ks[ks.length-1]];};
 const P_HEAD=2.8;
 /* contact for professional planning: fill these to show the card in the results */
-const CONTACT={wa:'',mail:''};
+const CONTACT={wa:'',mail:[['רז','raz.tami8@gmail.com'],['רותם','rotemz.tami@gmail.com']]};
 /* max flow at 1.5 m/s */
 const INLETS=[
   {id:'1/2',label:'½ צול',cap:1.0,od:'כ-2 ס"מ'},
@@ -867,12 +869,13 @@ function renderResults(){
   resEl.innerHTML=h;renderShop();renderContact();}
 /* professional planning card: WhatsApp with the plan's main numbers, and email */
 function renderContact(){const el=document.getElementById('contact');if(!el)return;
-  if(!CONTACT.wa&&!CONTACT.mail){el.innerHTML='';return;}
+  if(!CONTACT.wa&&!CONTACT.mail.length){el.innerHTML='';return;}
   const sum=R.zones?`דשא של ${area().toFixed(0)} מ"ר, ${S.heads.length} ממטירים, ${R.zones.length} הפעלות.`:'';
   const msg=encodeURIComponent(`שלום, תכננתי השקיה במחשבון של ת.מ.י ואשמח לתכנון מקצועי. ${sum}`);
   el.innerHTML=`<div class="cta"><b>רוצים תכנית מקצועית ומדויקת?</b><span>ת.מ.י מתכננת מערכות השקיה לבתים, לגינות ולשטחים ציבוריים.</span>
     <div class="row">${CONTACT.wa?`<a class="btn primary" href="https://wa.me/${CONTACT.wa}?text=${msg}" target="_blank" rel="noopener noreferrer">וואטסאפ</a>`:''}
-    ${CONTACT.mail?`<span class="mail">מייל: <b class="num">${CONTACT.mail}</b></span>`:''}</div></div>`;}
+</div>
+    ${CONTACT.mail.map(([n,m])=>`<span>${n}: <a class="mail num" href="mailto:${m}?subject=${encodeURIComponent('תכנון השקיה מקצועי')}&body=${msg}">${m}</a></span>`).join('')}</div>`;}
 function shopList(){
   const m=model(),n=S.heads.length,L=[];if(!n)return L;
   const c={};S.heads.forEach(h=>{const k=h.arc>=360?'360':h.arc>210?'210':'90';c[k]=(c[k]||0)+1;});
@@ -887,7 +890,58 @@ function shopList(){
     L.push(['מחשב השקיה',nz>1?`עם ${nz} תחנות לפחות`:'תחנה אחת מספיקה',1]);}
   return L;}
 function renderShop(){shopEl.innerHTML=shopList().map(([k,s,v])=>`<li><span>${k}<small>${s}</small></span><b class="num">${v}</b></li>`).join('')||'<li><span class="hint">הרשימה תופיע אחרי שיהיו ממטירים וראש מערכת.</span></li>';}
-document.getElementById('copy').onclick=async e=>{const t=shopList().map(([k,s,v])=>`${k} (${s}): ${v}`).join('\n');const b=e.currentTarget;
+/* ---------- export: one image with the drawing, the numbers and the shopping list, and the list as text ---------- */
+const DISCLAIMER='הערכה כללית לשימוש פרטי בלבד, לא תכנון מקצועי ולא תכנית לביצוע. ייתכנו סטיות בשטח. השימוש באחריות המשתמש, ות.מ.י אינה אחראית לכל נזק או הוצאה.';
+function listText(){return 'רשימת קניות - מתכנן ההשקיה של ת.מ.י\n'+shopList().map(([k,s,v])=>`${k} (${s}): ${v}`).join('\n')+'\n\n'+DISCLAIMER;}
+function exportMsg(t){const el=document.getElementById('exportmsg');el.textContent=t;el.hidden=!t;}
+/* the drawing as a picture: copy the live drawing with its colors written in, at a fixed size */
+async function planImage(w,h){const sv={...S.view},uv=S.userView,sel=[S.sel,S.selE,S.selV],mode=S.mode;
+  svg.style.width=w+'px';svg.style.height=h+'px';S.sel=S.selE=S.selV=-1;S.mode='results';fit();render();
+  const clone=svg.cloneNode(true),src=svg.querySelectorAll('*'),dst=clone.querySelectorAll('*');
+  const props=['fill','fill-opacity','stroke','stroke-opacity','stroke-width','stroke-dasharray','stroke-linecap','stroke-linejoin','opacity','font-family','font-weight','paint-order','vector-effect','pointer-events'];
+  src.forEach((el,i)=>{const cs=getComputedStyle(el),d=dst[i];props.forEach(k=>d.setAttribute(k,cs.getPropertyValue(k)));d.removeAttribute('class');d.removeAttribute('style');});
+  clone.querySelectorAll('[data-kind]').forEach(n=>n.remove());
+  clone.setAttribute('width',w);clone.setAttribute('height',h);clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  svg.style.width='';svg.style.height='';S.view=sv;S.userView=uv;[S.sel,S.selE,S.selV]=sel;S.mode=mode;render();
+  const xml=new XMLSerializer().serializeToString(clone),img=new Image();
+  img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));await img.decode();return img;}
+function wrapLines(ctx,text,maxW){const out=[];let line='';for(const w of text.split(' ')){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){out.push(line);line=w;}else line=t;}if(line)out.push(line);return out;}
+async function exportImage(){
+  if(!R.zones){exportMsg('קודם מסמנים דשא, ראש מערכת וממטירים.');return;}
+  exportMsg('מכינה תמונה...');
+  try{
+    const W=1080,pad=48,inner=W-pad*2,plan=await planImage(inner,Math.round(inner*0.72));
+    const cs=getComputedStyle(document.documentElement),col=k=>cs.getPropertyValue(k).trim();
+    const c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.direction='rtl';
+    const font=(sz,wt=400)=>`${wt} ${sz}px system-ui,"Segoe UI",Arial,sans-serif`;
+    const Z=R.zones,lines=[];
+    lines.push([font(34,700),`${Z.length===1?'הפעלה אחת':Z.length+' הפעלות'} · ${S.heads.length} ממטירים · ${f2(R.total)} מ"ק לשעה`,col('--fg')]);
+    lines.push([font(24),`שטח ${area().toFixed(0)} מ"ר · דגם ${model().id} · הכנה ${inlet().label} · צינורות: ${R.pipes.map(p=>p.mm+' מ"מ').join(', ')}`,col('--muted')]);
+    Z.forEach((z,i)=>lines.push([font(24),`הפעלה ${i+1}: ${z.heads.length} ממטירים · ${f2(z.q)} מ"ק/ש' · כ-${Math.ceil(z.len)} מ' צינור · לחץ נדרש כ-${z.need.toFixed(1)} בר`,col('--z'+(i%6))]));
+    lines.push(null);lines.push([font(28,700),'רשימת קניות',col('--fg')]);
+    shopList().forEach(([k,sub,v])=>lines.push([font(24),`${k}: ${v}`,col('--fg')]));
+    ctx.font=font(20);const disc=wrapLines(ctx,DISCLAIMER,inner);
+    const logoH=80,head=logoH+30,H=pad+head+plan.height+30+lines.length*40+20+disc.length*30+pad;
+    c.width=W;c.height=H;ctx.direction='rtl';
+    ctx.fillStyle=col('--surface');ctx.fillRect(0,0,W,H);
+    const logo=document.querySelector('.topbar .logo img');ctx.fillStyle='#ffffff';ctx.fillRect(W-pad-170,pad-6,170,logoH+12);
+    ctx.drawImage(logo,W-pad-160,pad,156,logoH);
+    ctx.fillStyle=col('--fg');ctx.textAlign='right';ctx.font=font(36,700);ctx.fillText('תכנית השקיה לגינה',W-pad-190,pad+40);
+    ctx.font=font(22);ctx.fillStyle=col('--muted');ctx.fillText(new Date().toLocaleDateString('he-IL'),W-pad-190,pad+76);
+    let y=pad+head;ctx.drawImage(plan,pad,y);ctx.strokeStyle=col('--line');ctx.lineWidth=2;ctx.strokeRect(pad,y,plan.width,plan.height);y+=plan.height+50;
+    lines.forEach(l=>{if(l){ctx.font=l[0];ctx.fillStyle=l[2];ctx.fillText(l[1],W-pad,y);}y+=40;});
+    y+=10;ctx.font=font(20);ctx.fillStyle=col('--muted');disc.forEach(t=>{ctx.fillText(t,W-pad,y);y+=30;});
+    const blob=await new Promise(r=>c.toBlob(r,'image/png')),name='תכנית-השקיה.png',file=new File([blob],name,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'תכנית השקיה לגינה'});exportMsg('');return;}catch(e){if(e&&e.name==='AbortError'){exportMsg('');return;}}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);exportMsg('התמונה נשמרה. אם לא ירדה, לחץ שוב או צלם מסך.');
+  }catch(e){exportMsg('לא הצלחתי ליצור תמונה במכשיר הזה. אפשר לצלם מסך של השרטוט.');}}
+async function shareList(){const t=listText();
+  if(navigator.share){try{await navigator.share({title:'רשימת קניות להשקיה',text:t});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  try{await navigator.clipboard.writeText(t);exportMsg('הרשימה הועתקה. אפשר להדביק אותה בוואטסאפ או בהודעה.');}catch(e){exportMsg('לא הצלחתי להעתיק. אפשר לסמן את הרשימה ולהעתיק ידנית.');}}
+document.getElementById('saveimg').onclick=exportImage;
+document.getElementById('sharelist').onclick=shareList;
+document.getElementById('copy').onclick=async e=>{const t=listText();const b=e.currentTarget;
   try{await navigator.clipboard.writeText(t);b.textContent='הועתק';}
   catch{const r=document.createRange();r.selectNodeContents(shopEl);const sl=getSelection();sl.removeAllRanges();sl.addRange(r);b.textContent='סומן, העתק ידנית';}
   setTimeout(()=>b.textContent='העתק רשימה',1800);};
