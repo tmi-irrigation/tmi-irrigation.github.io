@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-cUaQ5RwVMtKl61ppr9w5d2jde2i4aGyvtiaW6bXmXTY='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xGFwMlsOsRKZRbh1PnOwkRHrWo4WQL/SVp/7NKoZJZk='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="מחשבון פשוט לתכנון השקיית דשא ביתי: ממטירים, חלוקה להפעלות, צנרת ורשימת קניות.">
@@ -497,15 +497,23 @@ function coverage(H=S.heads){const P=dense().pts;if(P.length<3||!H.length)return
 
 /* ---------- hydraulics and zoning ---------- */
 function J(q,dmm,C=140){const Q=q/3600,D=dmm/1000;return 10.67*Math.pow(Q,1.852)/(Math.pow(C,1.852)*Math.pow(D,4.87));}
-function partition(cap){
-  /* split the lawn into strips across its long side, so each zone is a compact block */
-  const xs=S.heads.map(h=>h.x),ys=S.heads.map(h=>h.y),horiz=(Math.max(...xs)-Math.min(...xs))>=(Math.max(...ys)-Math.min(...ys));
-  const ord=S.heads.map((h,i)=>({i,a:horiz?h.x+h.y*1e-3:h.y+h.x*1e-3})).sort((a,b)=>a.a-b.a);
+function partition(cap,key){
+  /* walk the sprinklers in the given order and cut into k groups of about equal flow */
+  const ord=S.heads.map((h,i)=>({i,a:key(h,i)})).sort((a,b)=>a.a-b.a);
   let groups;for(let k=Math.max(1,Math.ceil(R.total/cap-1e-9));k<=ord.length;k++){const t=R.total/k;groups=Array.from({length:k},()=>[]);let cum=0;
     for(const o of ord){const q=R.Q[o.i];groups[Math.min(k-1,Math.floor((cum+q/2)/t))].push(o.i);cum+=q;}
     groups=groups.filter(g=>g.length);
     if(groups.every(g=>g.reduce((s,i)=>s+R.Q[i],0)<=cap+1e-9))break;}
   return groups;}
+/* ways to order the sprinklers: strips along x, strips along y, and a walk along the lawn from its far end
+   (an L or U is split into its arms). The split with the fewest zones, then the least pipe, wins. */
+function zoneSplits(cap){
+  const keys=[(h)=>h.x+h.y*1e-3,(h)=>h.y+h.x*1e-3];
+  try{const G=grid();if(G.src.length){const f0=geoField(G,G.src),d0=S.heads.map(h=>geoAt(G,f0,h)),e=d0.indexOf(Math.max(...d0));
+    if(d0[e]<1e9){const f1=geoField(G,nearNodes(G,S.heads[e])),d1=S.heads.map(h=>geoAt(G,f1,h));if(d1.every(v=>v<1e9))keys.push((h,i)=>d1[i]+i*1e-6);}}}catch(e){}
+  const seen=new Set(),out=[];
+  for(const k of keys){const g=partition(cap,k),id=g.map(x=>x.slice().sort((a,b)=>a-b).join(',')).sort().join('|');if(!seen.has(id)){seen.add(id);out.push(g);}}
+  const nmin=Math.min(...out.map(g=>g.length));return out.filter(g=>g.length===nmin);}
 function compute(){
   const m=model();R={cov:null,zones:null,zoneOf:[],Q:[],total:0,fixed:null,limit:0,limitBy:'',pipes:[]};
   R.Q=S.heads.map(h=>flow(m,h.arc));R.total=R.Q.reduce((a,b)=>a+b,0);R.cov=S.closed?coverage():null;
@@ -513,9 +521,10 @@ function compute(){
   const inCap=inlet().cap,av=availFlow();R.fixed=S.pipe==='auto'?null:PIPES.find(p=>p.mm===+S.pipe);
   const lims=[[av==null?'inletSafe':'inlet',av==null?+(inCap*INLET_SAFE).toFixed(2):inCap]];if(av!=null)lims.push(['avail',av]);if(R.fixed)lims.push(['pipe',R.fixed.cap]);
   lims.sort((a,b)=>a[1]-b[1]);R.limit=lims[0][1];R.limitBy=lims[0][0];
-  const groups=partition(R.limit);
+  let groups=null,fbs=null,bestLen=1e9;
+  for(const gs of zoneSplits(R.limit)){const f=gs.map(route),L=f.reduce((t,x)=>t+x.len,0);if(L<bestLen-0.5){bestLen=L;groups=gs;fbs=f;}}
   R.zones=groups.map((g,zi)=>{g.forEach(i=>R.zoneOf[i]=zi);
-    const q=g.reduce((s,i)=>s+R.Q[i],0),fb=fishbone(g),valve=pgvLoss(q);
+    const q=g.reduce((s,i)=>s+R.Q[i],0),fb=fbs[zi],valve=pgvLoss(q);
     /* pressure needed at the system head for this zone: sprinkler 2.8 + worst pipe path + height + valve + filter */
     return{heads:g,q,...fb,valve,need:P_HEAD+fb.loss+S.elev/10.2+valve+P_FILTER};});
   const by={};R.zones.forEach(z=>z.segs.forEach(s=>by[s.mm]=(by[s.mm]||0)+s.L));
@@ -562,6 +571,103 @@ function fishbone(g){
     for(let b=l2+0.5;b<=h2-0.5+1e-9;b+=0.5)cands.push(b);
     for(const c of cands){const m=fishCand(g,hz,c);m.out=outsideLen(m.segs);m.score=m.out*1000+m.len+(Math.abs(c-l2)<0.3||Math.abs(c-h2)<0.3?5:0);if(m.score<best.score)best=m;}}
   return best;}
+
+/* ---------- pipes that follow the lawn (L, U, free shapes) ----------
+   A grid turned to the lawn's longest side and anchored at the system head. Only points at least
+   SETBACK from the edge are used, so the main line never runs along or outside the border.
+   The main line may turn at a corner of the lawn; every sprinkler gets a straight branch at 90 degrees. */
+const SETBACK=0.4,TURN=1.0,MID=1.5,SLANT=2.5;
+let GR=null,GRkey='';
+function segIn(a,b){const L=dist(a,b),n=Math.max(1,Math.ceil(L/0.25));
+  for(let k=1;k<n;k++){const t=k/n,p={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};if(!inside(p)&&edgeDist(p)>0.15)return false;}return true;}
+function grid(){
+  const key=JSON.stringify([S.poly,S.bulge,S.sys]);if(GR&&GRkey===key)return GR;GRkey=key;
+  const P=S.poly,n=P.length,sys=S.sys;let best=0,th=0;
+  for(let i=0;i<n;i++){if(S.bulge[i])continue;const a=P[i],b=P[(i+1)%n],L=dist(a,b);if(L>best+1e-6){best=L;th=Math.atan2(b.y-a.y,b.x-a.x);}}
+  /* a round lawn has no main side: the main line points from the system head to the middle */
+  if(S.shape==='circle'||!best){const D0=dense().pts,mx=D0.reduce((t,p)=>t+p.x,0)/D0.length,my=D0.reduce((t,p)=>t+p.y,0)/D0.length;th=Math.atan2(my-sys.y,mx-sys.x);}
+  const c=Math.cos(th),s=Math.sin(th);
+  const U=p=>({u:(p.x-sys.x)*c+(p.y-sys.y)*s,v:-(p.x-sys.x)*s+(p.y-sys.y)*c}),W=(u,v)=>({x:sys.x+u*c-v*s,y:sys.y+u*s+v*c});
+  const D=dense().pts.map(U),us=D.map(p=>p.u),vs=D.map(p=>p.v);
+  const ext=(Math.max(...us)-Math.min(...us))*(Math.max(...vs)-Math.min(...vs)),h=Math.max(0.5,Math.sqrt(ext/5000));
+  const i0=Math.floor(Math.min(...us)/h),j0=Math.floor(Math.min(...vs)/h),NI=Math.ceil(Math.max(...us)/h)-i0+1,NJ=Math.ceil(Math.max(...vs)/h)-j0+1;
+  const ok=new Uint8Array(NI*NJ),pt=new Array(NI*NJ),step=new Float64Array(NI*NJ);
+  /* walking near the edge costs extra, so the main line keeps to the middle and the branches go out to the sprinklers */
+  for(let a=0;a<NI;a++)for(let b=0;b<NJ;b++){const k=a*NJ+b,p=W((a+i0)*h,(b+j0)*h),ed=inside(p)?edgeDist(p):0;pt[k]=p;ok[k]=ed>=SETBACK?1:0;step[k]=h*(1+Math.max(0,MID-ed));}
+  /* entry from the system head: the first usable point straight in along each axis, else the nearest one */
+  const src=[];
+  for(const[da,db,d]of[[1,0,0],[-1,0,1],[0,1,2],[0,-1,3]])for(let t=1;t*h<=3;t++){const a=-i0+da*t,b=-j0+db*t;if(a<0||b<0||a>=NI||b>=NJ)break;const k=a*NJ+b;if(ok[k]){src.push({k,d,c:t*h});break;}}
+  if(!src.length){let bk=-1,bd=1e9;for(let k=0;k<ok.length;k++)if(ok[k]){const dd=dist(pt[k],sys);if(dd<bd){bd=dd;bk=k;}}if(bk>=0&&bd<=4)src.push({k:bk,d:-1,c:bd});}
+  GR={h,U,W,i0,j0,NI,NJ,ok,pt,step,src};return GR;}
+/* small priority queue for the searches below */
+function hpush(H,e){H.push(e);let i=H.length-1;while(i){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p;}}
+function hpop(H){const t=H[0],l=H.pop();if(H.length){H[0]=l;let i=0;for(;;){const a=2*i+1,b=a+1;let m=i;if(a<H.length&&H[a][0]<H[m][0])m=a;if(b<H.length&&H[b][0]<H[m][0])m=b;if(m===i)break;[H[m],H[i]]=[H[i],H[m]];i=m;}}return t;}
+const DA=[1,-1,0,0],DB=[0,0,1,-1],REV=[1,0,3,2];
+/* walking distance inside the lawn from the given grid points (for ordering sprinklers along an L or U) */
+function geoField(G,srcs){const f=new Float64Array(G.ok.length).fill(1e9),H=[];srcs.forEach(s=>{if(s.c<f[s.k]){f[s.k]=s.c;hpush(H,[s.c,s.k]);}});
+  while(H.length){const[c,k]=hpop(H);if(c>f[k])continue;const a=Math.floor(k/G.NJ),b=k%G.NJ;
+    for(let d=0;d<4;d++){const a2=a+DA[d],b2=b+DB[d];if(a2<0||b2<0||a2>=G.NI||b2>=G.NJ)continue;const k2=a2*G.NJ+b2;if(!G.ok[k2]||c+G.h>=f[k2])continue;f[k2]=c+G.h;hpush(H,[c+G.h,k2]);}}return f;}
+function nearNodes(G,p,r=1.2){const q=G.U(p),out=[];const a0=Math.floor((q.u-r)/G.h)-G.i0,a1=Math.ceil((q.u+r)/G.h)-G.i0,b0=Math.floor((q.v-r)/G.h)-G.j0,b1=Math.ceil((q.v+r)/G.h)-G.j0;
+  for(let a=Math.max(0,a0);a<=Math.min(G.NI-1,a1);a++)for(let b=Math.max(0,b0);b<=Math.min(G.NJ-1,b1);b++){const k=a*G.NJ+b;if(G.ok[k]){const d=dist(G.pt[k],p);if(d<=r)out.push({k,c:d});}}return out;}
+const geoAt=(G,f,p)=>Math.min(1e9,...nearNodes(G,p).map(n=>f[n.k]+n.c));
+/* how a grid point reaches a sprinkler: a short straight end piece, then a branch at 90 degrees */
+function attach(G,k,h){const p=G.pt[k],q=G.U(p),t=G.U(h),out=[];
+  if(Math.abs(t.u-q.u)<=G.h/2+1e-9){const f=G.W(t.u,q.v);out.push({f,c:Math.abs(t.u-q.u)+Math.abs(t.v-q.v)});}
+  if(Math.abs(t.v-q.v)<=G.h/2+1e-9){const f=G.W(q.u,t.v);out.push({f,c:Math.abs(t.v-q.v)+Math.abs(t.u-q.u)});}
+  /* a corner sprinkler that no straight branch reaches: a short slanted branch */
+  const d=dist(p,h);if(d<=SLANT)out.push({f:null,c:d<=1?d:d*1.5});
+  let best=null;for(const o of out){if(best&&o.c>=best.c)continue;
+    if(o.f){if(!inside(o.f))continue;if(!segIn(o.f,h))continue;}else if(!segIn(p,h))continue;best=o;}
+  return best;}
+function treeRoute(g,M){
+  const G=grid();if(!G.src.length)return null;
+  const hs=g.map(i=>S.heads[i]),qs=g.map(i=>R.Q[i]);
+  /* search only around this zone and the system head (M metres of room); no room limit when M is null */
+  const bx=[S.sys,...hs].map(p=>G.U(p)),bu0=Math.min(...bx.map(q=>q.u))-(M??1e9),bu1=Math.max(...bx.map(q=>q.u))+(M??1e9),bv0=Math.min(...bx.map(q=>q.v))-(M??1e9),bv1=Math.max(...bx.map(q=>q.v))+(M??1e9);
+  const inBox=(a,b)=>{const u=(a+G.i0)*G.h,v=(b+G.j0)*G.h;return u>=bu0&&u<=bu1&&v>=bv0&&v<=bv1;};
+  const T=new Map([['S',{p:S.sys,par:null}]]),tree=new Map(),AC=hs.map(()=>new Map());
+  /* the way from a grid point to a sprinkler never changes, so it is worked out once */
+  const att=(k,ti)=>{const m=AC[ti];if(!m.has(k))m.set(k,attach(G,k,hs[ti]));return m.get(k);};
+  /* start with the sprinkler farthest away (walking inside the lawn), so the main line crosses the zone */
+  const f0=geoField(G,G.src),far=hs.map(h=>geoAt(G,f0,h));let left=hs.map((h,i)=>i);
+  const first=left.reduce((a,b)=>far[b]>far[a]?b:a,left[0]);if(far[first]>=1e9)return null;
+  while(left.length){
+    const targets=tree.size?left:[first],best=new Float64Array(G.ok.length*4).fill(1e9),from=new Int32Array(G.ok.length*4).fill(-1),H=[];
+    /* A* search: the straight-line distance to the nearest sprinkler left is a safe lower bound */
+    const est=k=>{let m=1e9;for(const ti of targets)m=Math.min(m,dist(G.pt[k],hs[ti]));return m;};
+    if(tree.size)tree.forEach((key,k)=>{const e=est(k);for(let d=0;d<4;d++){best[k*4+d]=0;hpush(H,[e,k*4+d,0]);}});
+    else G.src.forEach(s=>{const e=est(s.k);for(let d=0;d<4;d++)if(s.d<0||s.d===d){const c=s.c;if(c<best[s.k*4+d]){best[s.k*4+d]=c;from[s.k*4+d]=-2;hpush(H,[c+e,s.k*4+d,c]);}}});
+    let win=null;
+    while(H.length){const[f,st,c]=hpop(H);if(c>best[st])continue;if(win&&f>=win.c)break;const k=st>>2,d=st&3;
+      for(const ti of targets){const at=att(k,ti);if(at&&(!win||c+at.c<win.c))win={c:c+at.c,st,ti,at};}
+      const a=Math.floor(k/G.NJ),b=k%G.NJ;
+      for(let d2=0;d2<4;d2++){if(d2===REV[d])continue;const a2=a+DA[d2],b2=b+DB[d2];if(a2<0||b2<0||a2>=G.NI||b2>=G.NJ)continue;
+        const k2=a2*G.NJ+b2;if(!G.ok[k2]||tree.has(k2)||!inBox(a2,b2))continue;const c2=c+G.step[k2]+(d2!==d?TURN:0),s2=k2*4+d2;
+        if(c2<best[s2]){best[s2]=c2;from[s2]=st;hpush(H,[c2+est(k2),s2,c2]);}}}
+    if(!win)return null;
+    /* add the new path to the tree */
+    const chain=[];let st=win.st;while(st>=0){chain.push(st>>2);if(best[st]===0&&tree.size)break;st=from[st];}chain.reverse();
+    let parKey=tree.size?tree.get(chain[0]):'S',startI=tree.size?1:0;
+    for(let i=startI;i<chain.length;i++){const k=chain[i],key='g'+k;if(!tree.has(k)){T.set(key,{p:G.pt[k],par:parKey});tree.set(k,key);}parKey=tree.get(k);}
+    const ti=win.ti;if(win.at.f&&dist(win.at.f,G.pt[chain[chain.length-1]])>0.01){T.set('f'+ti,{p:win.at.f,par:parKey});parKey='f'+ti;}
+    T.set('h'+ti,{p:hs[ti],par:parKey});left=left.filter(i=>i!==ti);}
+  /* water through each piece = all sprinklers downstream of it */
+  const down=new Map(),kids=new Map();
+  hs.forEach((h,i)=>{let key='h'+i;while(key){down.set(key,(down.get(key)||0)+qs[i]);key=T.get(key).par;}});
+  T.forEach((n,key)=>{if(n.par)kids.set(n.par,(kids.get(n.par)||[]).concat(key));});
+  const segs=[],dir=(a,b)=>{const L=dist(a,b)||1;return{x:(b.x-a.x)/L,y:(b.y-a.y)/L};};
+  T.forEach((n,key)=>{if(!n.par)return;const par=T.get(n.par);
+    /* merge straight runs with the same flow into one piece */
+    if(n.par!=='S'&&par.par){const ks=kids.get(n.par)||[],d1=dir(T.get(par.par).p,par.p),d2=dir(par.p,n.p);
+      if(ks.length===1&&down.get(n.par)===down.get(key)&&d1.x*d2.x+d1.y*d2.y>0.999)return;}
+    let end=key;for(;;){const ks=kids.get(end)||[];if(ks.length!==1)break;const nx=ks[0],a=T.get(end),b=T.get(nx),d1=dir(T.get(a.par).p,a.p),d2=dir(a.p,b.p);
+      if(down.get(nx)!==down.get(key)||d1.x*d2.x+d1.y*d2.y<=0.999)break;end=nx;}
+    segs.push(sizeSeg({a:par.p,b:T.get(end).p,q:down.get(key),main:end[0]!=='h',end}));});
+  /* pressure loss to the farthest sprinkler, piece by piece along its way back to the system head */
+  let loss=0;hs.forEach((h,i)=>{let key='h'+i,t=0;while(key!=='S'){const n=T.get(key),q=down.get(key);t+=J(q,pipeFor(q).d)*dist(T.get(n.par).p,n.p)*1.15;key=n.par;}loss=Math.max(loss,t);});
+  return{segs,len:segs.reduce((s,x)=>s+x.L,0),loss:loss/10.2};}
+/* the grid route when it works; the old straight fishbone as a fallback */
+function route(g){let r=null;try{r=treeRoute(g,3)||treeRoute(g,null);}catch(e){r=null;}return r||fishbone(g);}
 /* available flow from the wall: a bucket test runs almost without pressure, so only 75% of it is allowed */
 const P_UNKNOWN=3.5,INLET_SAFE=0.7;
 const pressure=()=>S.press.mode==='none'?P_UNKNOWN:S.press.v;
