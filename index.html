@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Wt3IpapjdsM3D3G05AB7Ag1SpPtbjwEEOfV3m+wesLA='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Kd6QTllNmmhIpKSz+beeKwkBORNDL8MtWTRZQN12oyk='; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="מחשבון פשוט לתכנון השקיית דשא ביתי: ממטירים, חלוקה להפעלות, צנרת ורשימת קניות.">
@@ -137,6 +137,11 @@ dd{margin:0;color:var(--muted)}
 .lgl{display:inline-block;width:26px;height:12px;background:color-mix(in srgb,var(--grass) 30%,transparent);border:2px solid var(--grassline);border-radius:2px}
 .lgc{display:inline-block;width:16px;height:16px;border-radius:50%;border:1px dashed var(--z0);background:color-mix(in srgb,var(--z0) 10%,transparent)}
 .lgs{display:inline-block;width:12px;height:12px;border:2px solid var(--sys);background:linear-gradient(45deg,transparent 45%,var(--sys) 45% 55%,transparent 55%),linear-gradient(-45deg,transparent 45%,var(--sys) 45% 55%,transparent 55%)}
+.disc{font-size:.8rem;color:var(--muted);margin:0}
+.cta{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--brand) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--brand) 35%,transparent)}
+.cta b{font-family:var(--display);font-size:1.05rem}
+.cta a.btn{text-decoration:none}
+.cta .mail{user-select:all}
 .calc code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;direction:ltr;unicode-bidi:isolate;display:inline-block;max-width:100%;overflow-x:auto;color:var(--fg)}
 .lbl.sel{fill:var(--water)}
 .vtx.sel{fill:var(--water);stroke:var(--water)}
@@ -256,6 +261,8 @@ body{overflow:hidden;overscroll-behavior:none}
       <div class="panel" id="panel"></div>
       <div class="pane" id="resultsPane" hidden>
         <div id="results" style="display:flex;flex-direction:column;gap:12px"></div>
+        <p class="disc">הערכה כללית לשימוש פרטי בלבד, לא תכנון מקצועי. ייתכנו סטיות בשטח, והשימוש באחריות המשתמש.</p>
+        <div id="contact"></div>
         <div class="legend" id="legend" aria-label="מקרא"></div>
         <section class="panel" style="gap:10px">
     <div class="row" style="justify-content:space-between">
@@ -263,6 +270,7 @@ body{overflow:hidden;overscroll-behavior:none}
       <button class="btn" id="copy">העתק רשימה</button>
     </div>
     <ul class="shop" id="shop"></ul>
+      <p class="disc">כמויות משוערות. בדקו מול המוכר ובשטח לפני קנייה.</p>
   </section>
         <details>
     <summary>הגדרות מתקדמות</summary>
@@ -315,7 +323,7 @@ body{overflow:hidden;overscroll-behavior:none}
         <section class="notes">
     <p>ספיקות הממטירים לפי טבלת הביצועים בקטלוג Hunter בעברית (עמ' 54), בלחץ 2.8 בר.</p>
     <p>קטרי צינור לפי דף הנתונים של מצר. הפסד ברז חשמלי לפי טבלת Hunter ל-PGV של 1 צול. הספיקה המרבית של כניסה וצינור חושבה למהירות מים של 1.5 מטר לשנייה.</p>
-    <p>זו הערכה לגינה ביתית. בגינה גדולה או מסובכת כדאי להתייעץ עם מתכנן השקיה.</p>
+    <p><b>הבהרה:</b> המחשבון נותן הערכה כללית בלבד, לשימוש פרטי, ואינו תכנון מקצועי ואינו תכנית לביצוע. ייתכנו סטיות בין החישוב לבין המציאות בשטח, בין היתר בלחץ, בספיקה, במידות, במוצרים ובהתקנה. כל שימוש בתוצאות הוא באחריות המשתמש בלבד, ות.מ.י אינה אחראית לכל נזק, תקלה, הוצאה או תוצאה הנובעים מהשימוש. אין להשתמש בתוצאות לתכנון מסחרי או להעתיק אותן לתכנית.</p>
   </section>
         <footer class="credit">
     <img src="data:image/png;base64,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" width="93" height="48" alt="">
@@ -339,7 +347,7 @@ body{overflow:hidden;overscroll-behavior:none}
   </div>
 </div>
 
-<script>
+<script>(()=>{
 /* ---------- catalog data: Hunter MP Rotator at 2.8 bar ---------- */
 const MODELS=[
   {id:'MP1000',rmin:2.5,rmax:4.1,ra:{90:4.1,180:4.1,210:4.1,270:4.1,360:4.1},q:{90:0.05,180:0.10,210:0.11,270:0.14,360:0.19}},
@@ -349,6 +357,8 @@ const MODELS=[
 const rAt=(m,arc)=>{const ks=Object.keys(m.ra).map(Number).sort((a,b)=>a-b);if(arc<=ks[0])return m.ra[ks[0]];
   for(let i=1;i<ks.length;i++)if(arc<=ks[i])return Math.min(m.ra[ks[i-1]],m.ra[ks[i]]);return m.ra[ks[ks.length-1]];};
 const P_HEAD=2.8;
+/* contact for professional planning: fill these to show the card in the results */
+const CONTACT={wa:'',mail:''};
 /* max flow at 1.5 m/s */
 const INLETS=[
   {id:'1/2',label:'½ צול',cap:1.0,od:'כ-2 ס"מ'},
@@ -854,7 +864,15 @@ function renderResults(){
   <p class="hint">${pressure()<need
     ?`<b style="color:var(--bad)">${S.press.mode==='none'?`אם הלחץ בברז הוא כ-${P_UNKNOWN} בר, הוא לא יספיק.`:`הלחץ בברז (${pressure()} בר) נמוך מדי.`}</b> הפעלה ${worst+1} צריכה כ-${need.toFixed(1)} בר בראש המערכת: 2.8 בממטיר, <span class="num">${Z[worst].loss.toFixed(2)}</span> בצינור, <span class="num">${Z[worst].valve.toFixed(2)}</span> בברז החשמלי, 0.2 במסנן${S.elev?`, <span class="num">${(S.elev/10.2).toFixed(2)}</span> לגובה`:''}.${S.press.mode==='none'?' כדאי למדוד את הלחץ במד לחץ.':' חלוקה ליותר הפעלות מורידה מעט את ההפסדים, אבל אם הלחץ ברשת נמוך מ-3.2 בר, צריך משאבה או ממטירים שעובדים בלחץ נמוך יותר.'}`
     :`הלחץ מספיק: ההפעלה הקשה צריכה כ-${need.toFixed(1)} בר בראש המערכת${S.press.mode==='none'?`, והמחשבון הניח ${P_UNKNOWN} בר. כדאי לוודא במד לחץ.`:`, ויש ${pressure()} בר.`} ברשימת הקניות יש גופים שמווסתים ל-2.8 בר בעצמם.`}</p>`;
-  resEl.innerHTML=h;renderShop();}
+  resEl.innerHTML=h;renderShop();renderContact();}
+/* professional planning card: WhatsApp with the plan's main numbers, and email */
+function renderContact(){const el=document.getElementById('contact');if(!el)return;
+  if(!CONTACT.wa&&!CONTACT.mail){el.innerHTML='';return;}
+  const sum=R.zones?`דשא של ${area().toFixed(0)} מ"ר, ${S.heads.length} ממטירים, ${R.zones.length} הפעלות.`:'';
+  const msg=encodeURIComponent(`שלום, תכננתי השקיה במחשבון של ת.מ.י ואשמח לתכנון מקצועי. ${sum}`);
+  el.innerHTML=`<div class="cta"><b>רוצים תכנית מקצועית ומדויקת?</b><span>ת.מ.י מתכננת מערכות השקיה לבתים, לגינות ולשטחים ציבוריים.</span>
+    <div class="row">${CONTACT.wa?`<a class="btn primary" href="https://wa.me/${CONTACT.wa}?text=${msg}" target="_blank" rel="noopener noreferrer">וואטסאפ</a>`:''}
+    ${CONTACT.mail?`<span class="mail">מייל: <b class="num">${CONTACT.mail}</b></span>`:''}</div></div>`;}
 function shopList(){
   const m=model(),n=S.heads.length,L=[];if(!n)return L;
   const c={};S.heads.forEach(h=>{const k=h.arc>=360?'360':h.arc>210?'210':'90';c[k]=(c[k]||0)+1;});
@@ -913,7 +931,7 @@ const GUIDE=[
    s:'<svg viewBox="0 0 120 80"><g class="gg"><path d="M0 20H120M0 40H120M0 60H120M20 0V80M40 0V80M60 0V80M80 0V80M100 0V80"/></g><rect class="glawn" x="20" y="20" width="80" height="40"/><text class="glbl" x="60" y="15" text-anchor="middle">8 מ\'</text></svg>'},
   {t:'מסמנים את ראש המערכת',p:'לוחצים במקום שממנו יוצאים המים, ובוחרים את גודל הכניסה. לא יודעים? יש הסבר איך למדוד.',
    s:'<svg viewBox="0 0 120 80"><rect class="glawn" x="20" y="25" width="80" height="45"/><rect class="gsys" x="52" y="8" width="16" height="16"/><path class="gsysx" d="M52 8l16 16M68 8l-16 16"/></svg>'},
-  {t:'מקבלים תוכנית',p:'המחשבון מציב ממטירים, מחלק להפעלות לפי כמות המים שיש, ונותן רשימת קניות.',
+  {t:'מקבלים תוכנית',p:'המחשבון מציב ממטירים, מחלק להפעלות לפי כמות המים שיש, ונותן רשימת קניות. זו הערכה לשימוש פרטי, באחריות המשתמש.',
    s:'<svg viewBox="0 0 120 80"><rect class="glawn" x="20" y="15" width="80" height="50"/><path class="gcov" d="M20 15h30a30 30 0 0 1-30 30z"/><path class="gcov" d="M100 15v30a30 30 0 0 1-30-30z"/><path class="gcov" d="M20 65v-30a30 30 0 0 1 30 30z"/><path class="gcov" d="M100 65h-30a30 30 0 0 1 30-30z"/><circle class="ghead" cx="20" cy="15" r="4"/><circle class="ghead" cx="100" cy="15" r="4"/><circle class="ghead" cx="20" cy="65" r="4"/><circle class="ghead" cx="100" cy="65" r="4"/></svg>'}];
 const gEl=document.getElementById('guide');let gi=0;
 function showGuide(i){gi=i;const g=GUIDE[i];gEl.hidden=false;
@@ -926,7 +944,7 @@ document.getElementById('gskip').onclick=closeGuide;
 document.getElementById('help').onclick=()=>showGuide(0);
 let seen=false;try{seen=localStorage.getItem('gp_guide_done')==='1';}catch(e){}
 if(!seen)showGuide(0);
-</script>
+})();</script>
 
 </body>
 </html>
